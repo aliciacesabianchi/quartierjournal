@@ -1,6 +1,6 @@
 # Image register
 
-All images found in the prototype `Quartierjournal-standalone.html`, with their status.
+All images found in the prototype `Quartierjournal-standalone.html` (both uploads), with their status.
 **No image below is cleared for publication.** None of them are used in the app; they are recorded here so their origin can be traced.
 
 The app shows a neutral illustrated placeholder (generated, no photo) wherever no `permitted` or `own` image exists. In the database, `images.licence_status` must be `permitted` or `own` before an image becomes publicly readable; this is enforced by RLS.
@@ -17,19 +17,22 @@ The app shows a neutral illustrated placeholder (generated, no photo) wherever n
 
 The originals are not committed to the repository (identifiable children, unknown rights). The hashes let you match them against the files you have.
 
-## Referenced by the prototype but not embedded
+## Event photos and avatars (embedded in the second prototype file)
 
-The prototype maps event photos by organiser URL, but these files were **not** included in the bundle. They are probably in the earlier assets ZIP.
+The second upload of `Quartierjournal-standalone.html` (SHA-256 prefix `56e36e497090`) has the same screens and logic as the first. The only difference is that it embeds the 8 files below, which the first file referenced but didn't contain. The prototype matched each photo to an organiser URL.
 
-| File | Mapped to | Licence |
-|---|---|---|
-| `assets/event-02de10817a.jpg` | https://gz-zh.ch/gz-buchegg/ | unknown |
-| `assets/event-7d706d4108.jpg` | https://qh6.ch/veranstaltung/spielgruppe-roeslichnopf/ | unknown |
-| `assets/event-081eeafe8d.jpg` | https://gz-zh.ch/gz-hirzenbach/ | unknown |
-| `assets/event-b73c528b42.jpg` | Josefwiese (stadt-zuerich.ch) | unknown |
-| `assets/event-cc781b87f9.jpg` | https://qh6.ch/veranstaltung/pilates-ohne-mit-kinderbetreuung/ | unknown |
-| `assets/event-45904c28d3.jpg` | https://www.activfitness.ch/studios/activ-fitness-zuerich-wipkingen/ | unknown |
-| `assets/avatar-adult.png`, `assets/avatar-child.png` | default avatars | unknown (replaced by generated initials avatars) |
+| File | Matched to (prototype) | Size | SHA-256 (prefix) | Metadata | Notes | Licence |
+|---|---|---|---|---|---|---|
+| `event-02de10817a.jpg` | GZ Buchegg | 1200×600 | `fd035a957551` | Samsung SM-G781B, 2022-04-27 | Building exterior, no people | unknown |
+| `event-081eeafe8d.jpg` | GZ Hirzenbach | 1200×600 | `c2ee0826ca4c` | iPhone 13 mini, 2025-07-10 | Building and garden, no identifiable people | unknown |
+| `event-7d706d4108.jpg` | QH6 Spielgruppe Röslichnopf | 640×480 | `a26adc949fa3` | iPhone 5, 2013-09-30 | **Same file as hero H4. Identifiable children** | unknown |
+| `event-cc781b87f9.jpg` | QH6 Pilates | 732×572 | `ad4e8ccd20e3` | none | Adult exercising, face not shown | unknown |
+| `event-45904c28d3.jpg` | ACTIV FITNESS Wipkingen | 1560×975 | `09e88457ba5c` | Canon EOS 6D Mark II, 2022-05-25 | Gym interior, professional photo (likely the company's marketing image) | unknown |
+| `event-b73c528b42.jpg` | Josefwiese (stadt-zuerich.ch) | 2000×1333 | `6648d9972686` | 2024-05-26 | Park avenue, one distant person | unknown |
+| `avatar-adult.png` | default adult avatar | 1254×1254 | `df6595bf9925` | none | Illustration | unknown (who made it?) |
+| `avatar-child.png` | default child avatar | 1254×1254 | `41d60beb1e82` | none | Illustration | unknown (who made it?) |
+
+The photos look like they were taken from the organisers' own websites. The prototype's photo-to-organiser matches look correct, but appearing on an organiser's site does not mean we may republish them. They stay unused until permission is recorded. The originals are kept outside the repository.
 
 ## To clear an image for use
 
