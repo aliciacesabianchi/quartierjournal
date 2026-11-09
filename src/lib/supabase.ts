@@ -1,6 +1,8 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 
-const url = import.meta.env.VITE_SUPABASE_URL as string | undefined
+const rawUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined
+// 'same-origin' is only used for local previews through the dev-server proxy
+const url = rawUrl === 'same-origin' ? window.location.origin : rawUrl
 const key = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined
 
 /** null when the build has no Supabase configuration; the UI then says so instead of showing fake data. */
