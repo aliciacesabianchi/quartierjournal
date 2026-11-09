@@ -269,9 +269,11 @@ create table public.caregivers (
   label      text not null check (char_length(label) between 1 and 40),
   color      text not null default '#FFD54F' check (color ~ '^#[0-9A-Fa-f]{6}$'),
   sort_order smallint not null default 0,
+  is_self    boolean not null default false,   -- the account holder ("With me"); used by the free-time filter
   unique (id, user_id)
 );
 create index on public.caregivers (user_id);
+create unique index caregivers_one_self on public.caregivers (user_id) where is_self;
 
 create table public.care_blocks (
   id           uuid primary key default gen_random_uuid(),

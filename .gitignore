@@ -9,3 +9,4 @@ dist/
 coverage/
 # reference prototype and unlicensed images are kept out of git until the repo is private and they are reviewed
 private-reference/
+e2e-out/

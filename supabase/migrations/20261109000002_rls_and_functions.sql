@@ -114,6 +114,11 @@ create policy admin_update on public.leads for update to authenticated
   using (app.is_admin()) with check (app.is_admin());
 create policy admin_delete on public.leads for delete to authenticated using (app.is_admin());
 
+create or replace function public.am_i_admin()
+returns boolean language sql stable security definer set search_path = '' as $$ select app.is_admin() $$;
+revoke all on function public.am_i_admin() from public;
+grant execute on function public.am_i_admin() to anon, authenticated;
+
 -- ───────────────────────── profile on signup ─────────────────────────
 create or replace function app.handle_new_user()
 returns trigger language plpgsql security definer set search_path = '' as $$
@@ -192,7 +197,7 @@ select
   a.id, a.title, a.activity_type, a.category, a.audience, a.childcare_mode,
   a.age_text, a.age_min_months, a.age_max_months, a.age_numbers_from,
   a.price_text, a.is_free, a.registration, a.registration_text, a.schedule_notes,
-  a.content_language, a.verification, a.last_checked_on,
+  a.content_language, a.verification, a.last_checked_on, a.status,
   v.id as venue_id, v.name as venue_name, v.kind as venue_kind, v.address,
   q.name as quartier, d.number as district_number, d.city_id,
   coalesce((select jsonb_agg(jsonb_build_object('id', s.id, 'weekday', s.weekday, 'start', s.start_time,

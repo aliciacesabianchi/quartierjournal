@@ -41,6 +41,7 @@ export interface ActivityCard {
   content_language: string | null
   verification: Verification
   last_checked_on: string | null
+  status?: 'draft' | 'published' | 'archived'
   venue_id: string | null
   venue_name: string | null
   venue_kind: string | null
