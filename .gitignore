@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+*.sqlite
+*.sqlite3
+.DS_Store
+coverage/
+# reference prototype and unlicensed images are kept out of git until the repo is private and they are reviewed
+private-reference/
