@@ -18,17 +18,20 @@ fresh_db() {  # creates a database with shim + migrations, prints its URL
   local url; url="$(echo "$ADMIN_URL" | sed -E "s#/[^/?]*(\?|$)#/$db\1#")"
   psql "$url" -v ON_ERROR_STOP=1 -q -f supabase/tests/supabase_shim.sql >/dev/null
   for f in supabase/migrations/*.sql; do psql "$url" -v ON_ERROR_STOP=1 -q -f "$f" >/dev/null; done
-  echo "$url"
+  FRESH_URL="$url"
 }
 
-RLS_URL="$(fresh_db rls)"
+fresh_db rls
+RLS_URL="$FRESH_URL"
 echo "== migrations applied; running RLS tests"
 psql "$RLS_URL" -v ON_ERROR_STOP=1 -q -o /dev/null -f supabase/tests/rls_test.sql 2>&1 | sed -E 's/^psql:[^ ]+ //; s/^NOTICE:  //'
 
 if [ -f supabase/seed/catalogue_import.sql ]; then
-  SEED_URL="$(fresh_db seed)"
+  fresh_db seed
+  SEED_URL="$FRESH_URL"
   psql "$SEED_URL" -v ON_ERROR_STOP=1 -q -f supabase/seed/catalogue_import.sql >/dev/null
   psql "$SEED_URL" -v ON_ERROR_STOP=1 -q -f supabase/seed/catalogue_import.sql >/dev/null
   echo "== catalogue import applied twice (idempotent)"
   psql "$SEED_URL" -v ON_ERROR_STOP=1 -q -f supabase/tests/seed_checks.sql 2>&1 | sed -E 's/^psql:[^ ]+ //; s/^NOTICE:  //'
 fi
+
