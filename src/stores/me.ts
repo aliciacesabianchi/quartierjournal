@@ -26,7 +26,10 @@ export const useMe = defineStore('me', () => {
     return r.data as NonNullable<T>
   }
 
+  let loadGeneration = 0
+
   async function load() {
+    const generation = ++loadGeneration
     const s = db()
     const [p, c, cg, b, pl, f, l] = await Promise.all([
       s.from('profiles').select('*').maybeSingle(),
@@ -37,17 +40,27 @@ export const useMe = defineStore('me', () => {
       s.from('favourites').select('activity_id'),
       s.from('leads').select('id, url, name, note, status, created_at').order('created_at', { ascending: false }),
     ])
-    profile.value = check(p)
-    children.value = check(c)
-    caregivers.value = check(cg)
-    blocks.value = check(b)
-    plan.value = check(pl)
-    favourites.value = new Set(check(f).map((x: { activity_id: string }) => x.activity_id))
-    leads.value = check(l)
+    // A response started before logout/account switching must never repopulate private state.
+    if (generation !== loadGeneration) return
+    const nextProfile = check(p)
+    const nextChildren = check(c)
+    const nextCaregivers = check(cg)
+    const nextBlocks = check(b)
+    const nextPlan = check(pl)
+    const nextFavourites = new Set<string>(check(f).map((x: { activity_id: string }) => x.activity_id))
+    const nextLeads = check(l)
+    profile.value = nextProfile
+    children.value = nextChildren
+    caregivers.value = nextCaregivers
+    blocks.value = nextBlocks
+    plan.value = nextPlan
+    favourites.value = nextFavourites
+    leads.value = nextLeads
     loaded.value = true
   }
 
   function reset() {
+    ++loadGeneration
     profile.value = null; children.value = []; caregivers.value = []; blocks.value = []
     plan.value = []; favourites.value = new Set(); leads.value = []; loaded.value = false
   }
@@ -123,3 +136,4 @@ export const useMe = defineStore('me', () => {
     addBlock, removeBlock, addToPlan, removeFromPlan, inPlan, toggleFavourite, submitLead,
   }
 })
+
