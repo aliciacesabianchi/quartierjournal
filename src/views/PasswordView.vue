@@ -19,12 +19,17 @@ async function save() {
   if (!supabase) return
   busy.value = true
   error.value = null
-  const { error: e } = await supabase.auth.updateUser({ password: password.value })
-  busy.value = false
-  if (e) { error.value = t('auth.errors.generic', { msg: e.message }); return }
-  done.value = true
-  auth.passwordRecovery = false
-  setTimeout(() => router.push({ name: 'week' }), 1500)
+  try {
+    const { error: e } = await supabase.auth.updateUser({ password: password.value })
+    if (e) { error.value = t('auth.errors.generic', { msg: e.message }); return }
+    done.value = true
+    auth.passwordRecovery = false
+    setTimeout(() => router.push({ name: 'week' }), 1500)
+  } catch {
+    error.value = t('common.error')
+  } finally {
+    busy.value = false
+  }
 }
 </script>
 <template>
@@ -42,3 +47,4 @@ async function save() {
     </form>
   </main>
 </template>
+
