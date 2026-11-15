@@ -1,7 +1,7 @@
 name: CI
 on:
   push:
-    branches: [main]
+    branches: [main, pilot-foundation]
   pull_request:
 
 jobs:
@@ -31,3 +31,4 @@ jobs:
       - name: Migrations, RLS isolation tests and catalogue import checks
         env: { DATABASE_URL: 'postgresql://postgres:postgres@localhost:5432/postgres' }
         run: scripts/test-db.sh
+
