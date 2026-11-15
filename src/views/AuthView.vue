@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { supabase, appUrl } from '@/lib/supabase'
@@ -7,7 +7,15 @@ import { useAuth } from '@/stores/auth'
 import { currentLocale } from '@/i18n'
 
 type Mode = 'login' | 'signup' | 'reset'
-const { t } = useI18n()
+const { t, locale } = useI18n()
+const labels = computed(() => ({
+ de: ['Mit Google fortfahren', 'Bestätigung erneut senden', 'Bestätigungs-E-Mail angefordert. Prüfe auch den Spamordner.'],
+ en: ['Continue with Google', 'Resend confirmation', 'Confirmation email requested. Please check your spam folder too.'],
+ it: ['Continua con Google', 'Invia di nuovo la conferma', 'E-mail di conferma richiesta. Controlla anche la cartella spam.'],
+ fr: ['Continuer avec Google', 'Renvoyer la confirmation', 'E-mail de confirmation demandé. Vérifiez aussi les courriers indésirables.']
+}[locale.value] || ['Continue with Google', 'Resend confirmation', 'Confirmation email requested.']))
+const googleEnabled = import.meta.env.VITE_GOOGLE_AUTH_ENABLED === 'true'
+
 const route = useRoute()
 const router = useRouter()
 const auth = useAuth()
@@ -19,7 +27,7 @@ const busy = ref(false)
 const error = ref<string | null>(null)
 const info = ref<string | null>(null)
 
-const next = () => (typeof route.query.next === 'string' && route.query.next.startsWith('/') ? route.query.next : '/woche')
+const next = () => (typeof route.query.next === 'string' && route.query.next.startsWith('/') && !route.query.next.startsWith('//') && !route.query.next.includes('\\') ? route.query.next : '/woche')
 watch(() => auth.loggedIn, (v) => { if (v) router.replace(next()) }, { immediate: true })
 watch(mode, () => { error.value = null; info.value = null })
 
@@ -56,7 +64,24 @@ async function submit() {
       if (e) error.value = explain(e)
       else info.value = t('auth.resetSent', { email: email.value })
     }
-  } finally { busy.value = false }
+  } catch (e) { error.value = t('common.error') } finally { busy.value = false }
+}
+async function resend() {
+  if (!supabase || !email.value || busy.value) return
+  busy.value = true; error.value = null; info.value = null
+  try {
+    const { error: e } = await supabase.auth.resend({ type: 'signup', email: email.value, options: { emailRedirectTo: `${appUrl()}/login` } })
+    if (e) error.value = explain(e)
+    else info.value = labels.value[2] ?? t('auth.checkEmail', { email: email.value })
+  } catch { error.value = t('common.error') } finally { busy.value = false }
+}
+async function googleLogin() {
+  if (!supabase || busy.value) return
+  busy.value = true; error.value = null
+  try {
+    const { error: e } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: `${appUrl()}/login` } })
+    if (e) error.value = explain(e)
+  } catch { error.value = t('common.error') } finally { busy.value = false }
 }
 </script>
 
@@ -64,12 +89,12 @@ async function submit() {
   <main id="main" class="wrap narrow">
     <h1 class="h1">{{ mode === 'signup' ? $t('auth.signupTitle') : mode === 'reset' ? $t('auth.resetTitle') : $t('auth.loginTitle') }}</h1>
     <div v-if="!supabase" class="notice error">{{ $t('config.missing') }}</div>
-    <form class="stack" novalidate @submit.prevent="submit">
+    <form class="stack" @submit.prevent="submit">
       <label class="field"><span>{{ $t('auth.email') }}</span>
         <input v-model.trim="email" class="input" type="email" autocomplete="email" required />
       </label>
       <label v-if="mode !== 'reset'" class="field"><span>{{ $t('auth.password') }}</span>
-        <input v-model="password" class="input" type="password" :autocomplete="mode === 'signup' ? 'new-password' : 'current-password'" minlength="8" required />
+        <input v-model="password" class="input" type="password" :autocomplete="mode === 'signup' ? 'new-password' : 'current-password'" :minlength="mode === 'signup' ? 8 : undefined" required />
         <small v-if="mode === 'signup'" class="muted">{{ $t('auth.passwordHint') }}</small>
       </label>
       <div v-if="error" class="notice error" role="alert">{{ error }}</div>
@@ -78,6 +103,8 @@ async function submit() {
         {{ mode === 'signup' ? $t('auth.signup') : mode === 'reset' ? $t('auth.resetSend') : $t('auth.login') }}
       </button>
     </form>
+    <button v-if="googleEnabled && mode !== 'reset'" class="btn" :disabled="busy || !supabase" @click="googleLogin">{{ labels[0] }}</button>
+    <button v-if="mode !== 'reset'" class="linkbtn" :disabled="busy || !email || !supabase" @click="resend">{{ labels[1] }}</button>
     <div class="stack small">
       <button v-if="mode !== 'signup'" class="linkbtn" @click="mode = 'signup'">{{ $t('auth.toSignup') }}</button>
       <button v-if="mode !== 'login'" class="linkbtn" @click="mode = 'login'">{{ $t('auth.toLogin') }}</button>
@@ -92,3 +119,4 @@ async function submit() {
 .h1 { font-size: clamp(36px, 7vw, 56px); }
 .stack > .linkbtn { align-self: flex-start; text-align: left; }
 </style>
+
