@@ -1,71 +1,38 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
-import { useI18n } from 'vue-i18n'
+import { computed, onMounted, ref } from 'vue'
 import { useCatalogue } from '@/stores/catalogue'
 import { useAuth } from '@/stores/auth'
+import { useDesign } from '@/composables/useDesign'
 import ActivityTile from '@/components/ActivityTile.vue'
-import SceneArt from '@/components/SceneArt.vue'
-
-const { tm, rt } = useI18n()
+import ExampleWeek from '@/components/ExampleWeek.vue'
+const copy = useDesign()
 const cat = useCatalogue()
 const auth = useAuth()
 onMounted(() => cat.load())
-
-const steps = computed(() => (tm('home.steps') as any[]).map((s) => ({ t: rt(s.t), d: rt(s.d) })))
-const example = computed(() => (tm('home.exampleRows') as any[]).map((r) => ({ day: rt(r.day), who: rt(r.who), time: rt(r.time), idea: r.idea ? rt(r.idea) : null })))
-const recent = computed(() =>
-  [...cat.cards].filter((c) => c.last_checked_on).sort((a, b) => b.last_checked_on!.localeCompare(a.last_checked_on!)).slice(0, 3))
+const slides = ['home-indoor','home-josefwiese','home-playground','home-water','home-zurich']
+const slide = ref(0)
+const planLink = computed(() => auth.loggedIn ? { name:'week' } : { name:'login',query:{mode:'signup'} })
+const recent = computed(() => [...cat.cards].filter(c=>c.last_checked_on).sort((a,b)=>b.last_checked_on!.localeCompare(a.last_checked_on!)).slice(0,3))
+const storyHeading = computed(() => { const s=copy.value.story.stH; const p=s.indexOf('.'); return [s.slice(0,p+1),s.slice(p+1).trim()] })
 </script>
-
 <template>
-  <main id="main" class="wrap">
-    <section class="hero">
-      <div class="stack" style="gap: 18px">
-        <h1>{{ $t('home.h1') }}</h1>
-        <p class="lead">{{ $t('home.p') }}</p>
-        <div class="row">
-          <RouterLink :to="{ name: 'discover' }" class="btn primary">{{ $t('home.ctaDiscover') }}</RouterLink>
-          <RouterLink :to="auth.loggedIn ? { name: 'week' } : { name: 'login', query: { mode: 'signup' } }" class="btn">{{ $t('home.ctaPlan') }}</RouterLink>
-        </div>
-      </div>
-      <div class="art card"><SceneArt seed="home" :label="$t('card.noImage')" /></div>
-    </section>
-
-    <section id="how" class="stack" style="gap: 20px">
-      <h2>{{ $t('home.howTitle') }}</h2>
-      <ol class="steps">
-        <li v-for="(s, i) in steps" :key="i">
-          <span class="n">0{{ i + 1 }}</span>
-          <h3>{{ s.t }}</h3>
-          <p class="muted">{{ s.d }}</p>
-        </li>
-      </ol>
-      <!-- Explanatory example: static content, clearly labelled, never stored as user data -->
-      <figure class="panel cream example">
-        <figcaption class="row"><span class="badge example">{{ $t('common.example') }}</span><strong>{{ $t('home.exampleTitle') }}</strong><span class="small muted">{{ $t('home.exampleNote') }}</span></figcaption>
-        <ul>
-          <li v-for="(r, i) in example" :key="i"><strong>{{ r.day }}</strong> · {{ r.time }} · {{ r.who }}<span v-if="r.idea" class="muted"> → {{ r.idea }}</span></li>
-        </ul>
-      </figure>
-    </section>
-
-    <section v-if="recent.length" class="stack" style="gap: 20px">
-      <h2>{{ $t('home.recent') }}</h2>
-      <div class="grid-cards"><ActivityTile v-for="a in recent" :key="a.id" :a="a" /></div>
-      <div><RouterLink :to="{ name: 'discover' }" class="btn accent">{{ $t('home.seeAll') }}</RouterLink></div>
-    </section>
-    <div v-else-if="cat.status === 'unconfigured'" class="notice error">{{ $t('config.missing') }}</div>
-  </main>
+ <main id="main" class="wrap home">
+  <section class="hero">
+   <div class="hero-copy"><h1>{{ copy.guest.h1 }}</h1><p>{{ copy.guest.p }}</p><div class="row"><RouterLink :to="{name:'discover'}" class="btn primary">{{ copy.guest.b1 }}</RouterLink><RouterLink :to="planLink" class="btn">{{ copy.guest.b2 }}</RouterLink></div></div>
+   <div class="hero-photo"><img :src="`/photos/${slides[slide]}.webp`" alt="" fetchpriority="high" width="1000" height="750"><div class="photo-controls"><button @click="slide=(slide+4)%5" aria-label="Previous">←</button><span aria-hidden="true">{{slide+1}} / 5</span><button @click="slide=(slide+1)%5" aria-label="Next">→</button></div></div>
+  </section>
+  <section id="about" class="story">
+   <div class="story-copy"><h2><span>{{ storyHeading[0] }}</span><span class="underline">{{ storyHeading[1] }}</span></h2><p>{{ copy.story.stP1 }}</p><p>{{ copy.story.stP2a }}<strong>{{ copy.story.stEm }}</strong>{{ copy.story.stP2b }}</p><p>{{ copy.story.stP3 }}</p><p class="ending">{{ copy.story.stEnd }}</p><RouterLink :to="{name:'discover'}" class="btn primary">{{ copy.story.explore }} →</RouterLink></div>
+  </section>
+  <section id="how" class="how"><h2>{{ copy.guest.how }}</h2><ol class="steps"><li><span class="number">01</span><h3>{{ copy.story.s1T }}</h3><p>{{ copy.story.s1C }}</p><div class="mini-discover"><img src="/photos/home-playground.webp" alt="" loading="lazy"><span>{{copy.story.act2}}<br><small>{{copy.story.cAge}} · Zürich</small></span></div></li><li><span class="number">02</span><h3>{{copy.story.s2T}}</h3><p>{{copy.story.s2C}}</p><div class="mini-blocks"><span>{{copy.story.kita}}</span><span>{{copy.story.mir}}</span><span>{{copy.story.actT}}</span></div></li><li><span class="number">03</span><h3>{{copy.story.s3T}}</h3><p>{{copy.story.s3C}}</p><blockquote>{{copy.story.msg}}</blockquote><small>{{copy.guest.ex}}</small></li></ol></section>
+  <section v-if="recent.length" class="discover-section"><div class="section-title"><h2>{{ copy.guest.dis }}</h2><RouterLink :to="{name:'discover'}">{{copy.guest.all}} →</RouterLink></div><div class="grid-cards"><ActivityTile v-for="a in recent" :key="a.id" :a="a"/></div></section>
+  <div v-else-if="cat.status==='unconfigured'" class="notice">{{$t('config.missing')}}</div>
+  <section class="join"><div><h2>{{copy.guest.finT}}</h2><p>{{copy.story.mkP}}</p><RouterLink :to="planLink" class="btn primary">{{auth.loggedIn?copy.story.openW:copy.guest.finB}}</RouterLink><RouterLink :to="{name:'discover'}" class="guest-link">{{copy.story.mkLink}}</RouterLink></div><ExampleWeek/></section>
+  <section class="gem"><h2>{{copy.guest.gemT}}</h2><p>{{copy.guest.gemP}}</p><RouterLink :to="{name:'suggest'}" class="btn">{{copy.guest.gemB}} →</RouterLink></section>
+ </main>
 </template>
-
 <style scoped>
-.hero { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: clamp(24px, 4vw, 56px); align-items: center; }
-.art { aspect-ratio: 10 / 7; }
-.steps { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 24px; }
-.steps li { border-top: 1px solid var(--ink); padding-top: 12px; }
-.n { color: var(--magenta-ink); font-weight: 500; }
-.steps p { margin: 6px 0 0; }
-.example { margin: 0; display: flex; flex-direction: column; gap: 10px; }
-.example ul { margin: 0; padding-left: 18px; }
-@media (max-width: 760px) { .hero { grid-template-columns: 1fr; } .art { aspect-ratio: auto; height: 200px; } }
+main.home{gap:clamp(64px,9vw,120px);padding-top:48px;padding-bottom:80px}.hero{display:grid;grid-template-columns:1fr 1.15fr;gap:48px;align-items:center}.hero h1{font-size:clamp(42px,5.2vw,72px);line-height:1.08}.hero-copy>p{font-size:clamp(18px,2vw,24px);font-weight:300;margin:28px 0}.home .btn{font-size:17px;padding:15px 26px}.hero-photo{position:relative;aspect-ratio:1.25;overflow:hidden;border-radius:32px}.hero-photo>img{width:100%;height:100%;object-fit:cover}.photo-controls{position:absolute;bottom:16px;left:16px;right:16px;display:flex;align-items:center;justify-content:space-between}.photo-controls button{border:0;border-radius:50%;width:44px;height:44px;background:white;cursor:pointer}.photo-controls span{background:#fff;padding:4px 12px;border-radius:20px;font-size:12px}.story{padding:16px 0}.story-copy{max-width:680px;margin:auto;text-align:center;display:flex;flex-direction:column;align-items:center;gap:28px}.story h2{font-size:clamp(34px,4.3vw,56px);font-weight:600;line-height:1.22}.story h2 span{display:block}.underline{text-decoration:underline;text-decoration-color:var(--green);text-decoration-thickness:3px;text-underline-offset:8px}.story p{font-size:clamp(18px,1.65vw,21px);line-height:1.65;margin:0}.story .ending{font-weight:500;font-size:23px;margin-top:12px}.how>h2{margin-bottom:32px;font-size:clamp(32px,4vw,52px)}.steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));list-style:none;margin:0;padding:0;gap:24px}.steps li{border:1px solid var(--ink);border-radius:26px;padding:26px;display:flex;flex-direction:column;align-items:flex-start;gap:18px}.number{display:grid;place-items:center;width:48px;height:48px;border-radius:50%;background:var(--magenta);color:white}.steps h3{font-size:25px}.steps p{margin:0}.steps blockquote{margin:0;background:var(--yellow-soft);border-radius:20px;padding:18px;font-size:18px}.mini-discover{margin-top:auto;border:1px solid var(--line);border-radius:16px;overflow:hidden;width:100%}.mini-discover img{width:100%;height:110px;object-fit:cover}.mini-discover span{display:block;padding:12px}.mini-blocks{display:grid;gap:6px;width:100%;margin-top:auto}.mini-blocks span{padding:12px;border-radius:10px;background:var(--blue)}.mini-blocks span:nth-child(2){background:var(--yellow)}.mini-blocks span:nth-child(3){background:var(--magenta);color:white}.section-title{display:flex;gap:24px;justify-content:space-between;align-items:center;flex-wrap:wrap;margin-bottom:28px}.join{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center;background:#fffbe8;border-radius:32px;padding:clamp(24px,4vw,48px)}.join h2{font-size:clamp(34px,4vw,52px)}.join p,.gem p{font-size:20px;line-height:1.6;margin:28px 0}.guest-link{display:block;margin-top:24px}.gem{max-width:720px}.gem h2{font-size:clamp(30px,4vw,46px)}
+@media(max-width:900px){.steps{grid-template-columns:1fr}.steps li{padding:24px}.mini-discover{max-width:360px}.mini-blocks{max-width:360px}.join{grid-template-columns:1fr}.hero{gap:24px}.hero h1{font-size:44px}}
+@media(max-width:640px){.hero{grid-template-columns:1fr}.hero-photo{aspect-ratio:1.4}.hero .row{align-items:stretch}.hero .btn{flex:1}.join{padding:20px;gap:28px}.story-copy{gap:22px}.home .btn{font-size:16px;padding:14px 20px}.hero h1{font-size:44px}main.home{padding-top:28px}}
 </style>

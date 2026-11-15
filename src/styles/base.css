@@ -1,6 +1,7 @@
 @import '@fontsource/dm-sans/300.css';
 @import '@fontsource/dm-sans/400.css';
 @import '@fontsource/dm-sans/500.css';
+@import '@fontsource/dm-sans/600.css';
 
 :root {
   --ink: #1d1d1b;
@@ -94,3 +95,9 @@ textarea.input { min-height: 96px; resize: vertical; }
 .skip:focus { left: 8px; background: #fff; padding: 8px 12px; }
 
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+
+/* Responsive typography for all four interface languages. */
+main, section, article, .stack, .row > * { min-width: 0; }
+button, .btn, h1, h2, h3 { overflow-wrap: anywhere; }
+.btn { text-align: center; }
