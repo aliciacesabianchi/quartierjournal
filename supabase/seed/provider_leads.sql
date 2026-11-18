@@ -21,3 +21,18 @@ insert into public.leads (id, url, name, note, origin, status)
 select 'a1000000-0000-5000-8000-00000000000b'::uuid, 'https://www.instagram.com/littlelocals.zurich/', 'Little Locals Zurich',
        'Sent by the project owner. Instagram only: find the organiser''s own website or newsletter, or ask them for their programme. Do not scrape Instagram.', 'worker', 'new'
 where not exists (select 1 from public.leads where id = 'a1000000-0000-5000-8000-00000000000b');
+
+-- From the Zürich Tourismus children's pages (https://www.zuerich.com/en/zurich-for-children and /en/childrens-museums), sent by the owner.
+-- Attractions in the city of Zurich, as PLACES (opening hours/prices to be confirmed on each place's own website; the tourism page is only the pointer).
+insert into public.leads (id, url, name, note, origin, status)
+select v.id::uuid, v.url, v.name, 'From the Zürich Tourismus children page. Add as a place (Natur & Tiere / Kunst, Geschichten & Theater) after checking opening hours, entry price and child ages on the place''s own website.', 'worker', 'new'
+from (values
+ ('a1000000-0000-5000-8000-00000000000c', 'https://www.zuerich.com/en/visit/place/zoo-zurich', 'Zoo Zürich'),
+ ('a1000000-0000-5000-8000-00000000000d', 'https://www.zuerich.com/en/visit/culture/kulturama-museum-of-human-evolution', 'Kulturama (Museum des Menschen)'),
+ ('a1000000-0000-5000-8000-00000000000e', 'https://www.zuerich.com/en/visit/culture/natural-history-museum-of-the-university-of-zurich', 'Naturhistorisches Museum der Universität Zürich'),
+ ('a1000000-0000-5000-8000-00000000000f', 'https://www.zuerich.com/en/visit/culture/nonam-north-america-native-museum-zurich', 'NONAM (Nordamerika Native Museum)'),
+ ('a1000000-0000-5000-8000-000000000010', 'https://www.zuerich.com/en/visit/culture/muhlerama-the-tireless-mill-on-lake-zurich', 'Mühlerama'),
+ ('a1000000-0000-5000-8000-000000000011', 'https://www.zuerich.com/en/visit/culture/tram-museum-zurich', 'Tram-Museum Zürich'),
+ ('a1000000-0000-5000-8000-000000000012', 'https://www.zuerich.com/en/visit/nature/uetliberg-zurichs-very-own-mountain', 'Uetliberg (Spazieren, Natur)')
+) as v(id, url, name)
+where not exists (select 1 from public.leads l where l.id = v.id::uuid);
