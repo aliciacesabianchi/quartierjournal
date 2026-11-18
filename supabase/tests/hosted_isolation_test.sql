@@ -18,8 +18,8 @@ begin
 
   -- anonymous visitor
   set local role anon; perform set_config('request.jwt.claims','',true);
-  res := res || jsonb_build_object('t','anon sees only published activities (10)','ok',(select count(*) from public.activities)=10);
-  res := res || jsonb_build_object('t','anon sees published cards (10)','ok',(select count(*) from public.activity_cards)=10);
+  res := res || jsonb_build_object('t','anon sees only published activities (none of the drafts or archived)','ok',(select count(*) from public.activities where status<>'published')=0 and (select count(*) from public.activities)>0);
+  res := res || jsonb_build_object('t','anon sees published cards only','ok',(select count(*) from public.activity_cards where status<>'published')=0 and (select count(*) from public.activity_cards)>0);
   begin perform 1 from public.profiles limit 1; res := res || jsonb_build_object('t','anon cannot read profiles','ok',false);
   exception when insufficient_privilege then res := res || jsonb_build_object('t','anon cannot read profiles','ok',true); end;
   begin perform 1 from public.children limit 1; res := res || jsonb_build_object('t','anon cannot read children','ok',false);

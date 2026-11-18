@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useMe } from '@/stores/me'
 import { useCatalogue } from '@/stores/catalogue'
 import { useFormat } from '@/composables/useFormat'
-import { fitsFreeTime, sortCards } from '@/domain/filters'
+import { fitsFreeTime, isVerified, sortCards } from '@/domain/filters'
 import { buildIcs, type IcsItem } from '@/domain/ics'
 import { addDays, hhmm, isoWeekday, toMinutes, todayInZurich } from '@/domain/time'
 import type { CareBlock, TemplateSlot, Occurrence, Weekday } from '@/domain/types'
@@ -136,7 +136,7 @@ function exportPlan() {
 }
 const hasSelfBlocks = computed(() => me.blocks.some((b) => me.selfIds.has(b.caregiver_id)))
 const ideas = computed(() =>
-  sortCards(cat.cards.filter((a) => !me.plan.some((p) => p.activity_id === a.id) && fitsFreeTime(a, me.blocks, me.selfIds))).slice(0, 6))
+  sortCards(cat.cards.filter((a) => isVerified(a) && !me.plan.some((p) => p.activity_id === a.id) && fitsFreeTime(a, me.blocks, me.selfIds))).slice(0, 6))
 
 watch(narrow, () => { page.value = 0 })
 </script>

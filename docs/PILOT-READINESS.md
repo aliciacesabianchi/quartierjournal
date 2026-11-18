@@ -10,6 +10,18 @@ Status on 2026-11-18. ✅ done and verified · 🟡 needs the Supabase token (I 
 - 🔴 `VITE_CONTACT_EMAIL` is not set in Cloudflare: the Contact page and footer show no email address yet.
 - 🟡 Not visible from outside (needs the Supabase token): site URL, redirect allow-list, SMTP, password length, email templates.
 
+## Catalogue update from the 2026-11-18 data set (ready, waiting to be applied to the live project)
+Tested locally from the exact state your live database is in today. Details: `docs/import-report.md`.
+- What it adds: **10 new organiser-confirmed family activities** at 6 new venues (GZ Grünau, GZ Heuried, GZ Wollishofen Neubühl, GZ Witikon, GZ Hirzenbach, GZ Riesbach, Quartierzentrum Bäckeranlage, Arche), **838 upcoming sessions** and **489 places** from the Chreis+ feeds, plus the full check history, per-Kreis coverage notes and 11 new leads.
+- Nothing is overwritten: re-running changes nothing, and entries an admin edited are left alone.
+- Honest labelling: Chreis+ entries are marked *via Chreis+, not confirmed*, show only the dates listed in the feed (never "usually"), and age, price and registration stay unknown. Past sessions stay in the history but are not shown. Details a filter would hide because they are unknown (no Kreis, no age) are counted and can be shown with one click.
+- Kreis: 529 of 858 entries have one (venue address match, or postal code where at least 3 known places agree; marked as derived).
+- **Not in any dataset: "Kirchgemeindehaus Zentrum Rigiblick".** Only "Theater Rigiblick" is. It is tracked as a lead in Review. Send me the organiser's page and I'll add it.
+- To apply (needs a short-lived Supabase token, see below): `database/migrations` ← `supabase/migrations/20261118000003_feed_data.sql`, then `python3 -I worker/apply_seed.py --api <project-ref>`, then `scripts/audit-supabase.sh`. The matching website code is on branch `data-v2`; merge it once the database is updated.
+- 🔴 **Decision:** Discover currently shows *all* events (confirmed ones first) with a chip to show only confirmed ones. Most Chreis+ events are not aimed at babies (adult courses, concerts, assemblies). Alternative: default to *confirmed only* and offer "all events" as an opt-in.
+- 🔴 **Licence:** Chreis+ data is CC BY-SA 4.0. The site credits Chreis+ (listing pages, detail pages, places). If you republish the dataset itself, it must be shared under the same licence.
+- 💡 **For the next export:** add the quartier each Chreis+ session came from (would place most of the remaining 329 entries in a Kreis), and end times, if the feed has them.
+
 ## Accounts, signup, login
 - ✅ Email + password signup with email confirmation, login, logout, password reset (code reviewed; browser tests with a stand-in login service pass).
 - ✅ Expired or cross-device confirmation links now explain themselves on the login page.

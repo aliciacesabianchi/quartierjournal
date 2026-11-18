@@ -15,6 +15,7 @@ const auth = useAuth()
       <nav :aria-label="copy.story.fExp">
         <h2 class="hd">{{ copy.story.fExp }}</h2>
         <RouterLink :to="{ name: 'discover' }">{{ copy.story.fDisc }}</RouterLink>
+        <RouterLink :to="{ name: 'places' }">{{ $t('ui.places.title') }}</RouterLink>
         <RouterLink v-if="auth.loggedIn" :to="{ name: 'week' }">{{ $t('nav.week') }}</RouterLink>
         <RouterLink :to="{ name: 'how' }">{{ copy.story.fHow }}</RouterLink>
         <RouterLink :to="{ name: 'suggest' }">{{ copy.story.fSug }}</RouterLink>

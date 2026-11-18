@@ -7,6 +7,7 @@ export const router = createRouter({
   routes: [
     { path: '/', name: 'home', component: () => import('./views/HomeView.vue') },
     { path: '/entdecken', name: 'discover', component: () => import('./views/DiscoverView.vue') },
+    { path: '/orte', name: 'places', component: () => import('./views/PlacesView.vue') },
     { path: '/a/:id', name: 'activity', component: () => import('./views/ActivityView.vue'), props: true },
     { path: '/woche', name: 'week', component: () => import('./views/WeekView.vue'), meta: { auth: true } },
     { path: '/profil', name: 'profile', component: () => import('./views/ProfileView.vue'), meta: { auth: true } },

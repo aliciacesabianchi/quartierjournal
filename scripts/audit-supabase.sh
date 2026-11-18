@@ -22,9 +22,9 @@ except Exception: mig = None
 if not isinstance(mig, list):
     print('FAIL cannot read the project (token invalid or wrong project ref):', mig_raw[:200]); sys.exit(2)
 names = [m.get('name') for m in mig]
-for want in ('core_schema', 'rls_and_functions'):
+for want in ('core_schema', 'rls_and_functions', 'feed_data'):
     chk('PASS' if want in names else 'FAIL', f'migration applied: {want}')
-extra = [n for n in names if n not in ('core_schema', 'rls_and_functions')]
+extra = [n for n in names if n not in ('core_schema', 'rls_and_functions', 'feed_data')]
 if extra: chk('INFO', 'additional migrations recorded', ', '.join(map(str, extra)))
 a = json.loads(auth_raw)
 site = a.get('site_url') or ''
@@ -59,10 +59,12 @@ if isinstance(d, dict): print("FAIL", d.get("message","")[:300]); sys.exit(1)
 r = d[0]["r"]; bad = False
 def chk(ok, name, det=""):
     global bad; bad |= not ok; print(("PASS " if ok else "FAIL ") + name + (f"  [{det}]" if det else ""))
-chk(r["tables"] == 25, "25 tables in public", r["tables"])
+chk(r["tables"] == 26, "26 tables in public (incl. coverage_checks)", r["tables"])
+chk(r["migration3"] == 4, "migration 3 applied (feed columns present)", r["migration3"])
 chk(not r["no_rls"], "row-level security on and forced for every table", r["no_rls"])
 chk(r["anon_writes"] == 0, "anonymous visitors cannot write anywhere", r["anon_writes"])
-chk(r["published"] == 10 or r["published"] > 0, "published activities exist", r["published"])
+chk(r["published"] > 0, "published activities exist", r["published"])
+print("INFO confirmed=%s feed=%s public venues=%s" % (r["confirmed_published"], r["feed_published"], r["venues_public"]))
 chk(r["pub_not_verified"] == 0, "only provider-verified activities are published", r["pub_not_verified"])
 chk(r["admins"] >= 1, "at least one admin exists", r["admins"])
 print("INFO users=%s confirmed=%s profiles=%s user_leads=%s drafts=%s" % (r["users"], r["confirmed"], r["profiles"], r["leads"], r["drafts"]))

@@ -59,6 +59,7 @@ REGISTRATION = {
 
 VERIFICATION = {
     "provider verified": "provider_verified", "verified": "provider_verified",
+    "organiser verified; check exceptions": "provider_verified",
     "verified_recurring": "provider_verified",
     "source listing; confirm dates": "secondary_source",
     "seed listing; confirm exceptions": "unverified",
@@ -143,16 +144,35 @@ def is_free(price: str | None) -> bool | None:
     return None  # e.g. "No purchase required" — not the same as a confirmed free entry
 
 
+def addr_key(s: str | None) -> str:
+    """'Leimbachstrasse 200 8041 Zürich' and 'Leimbachstr. 200, 8041 Zürich' -> same key."""
+    n = norm(s).replace("strasse", "str")
+    n = re.sub(r"\bzurich\b", "", n)
+    return re.sub(r"\s+", " ", n).strip()
+
+
+FEED_TABLES = ("feed_places", "feed_occurrences")
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("sqlite")
     ap.add_argument("--sql", required=True)
     ap.add_argument("--report", required=True)
+    ap.add_argument("--base", help="the previously imported SQLite file: keeps ids stable when activities gain rows")
     args = ap.parse_args()
 
     db = sqlite3.connect(f"file:{args.sqlite}?mode=ro", uri=True)
     db.row_factory = sqlite3.Row
     rows = lambda sql: [dict(r) for r in db.execute(sql)]
+    has_table = lambda t: db.execute("select 1 from sqlite_master where type='table' and name=?", (t,)).fetchone() is not None
+    chunk_n = [0]
+
+    def chunk(force: bool = False):
+        """Marks a safe split point (the hosted project's SQL API takes limited sizes). Plain psql ignores it."""
+        chunk_n[0] += 1
+        if force or chunk_n[0] % 100 == 0:
+            out.append("-- @@CHUNK")
 
     out: list[str] = []
     rep: list[str] = []
@@ -227,6 +247,19 @@ def main() -> int:
     for a in acts:
         groups[group_key(a)].append(a)
 
+    # Keep ids stable across re-imports: a group that contains a row id of a previously imported group reuses its id.
+    old_group_uuid: dict[int, str] = {}
+    if args.base:
+        bdb = sqlite3.connect(f"file:{args.base}?mode=ro", uri=True); bdb.row_factory = sqlite3.Row
+        bgroups: dict[tuple, list[int]] = defaultdict(list)
+        for a in bdb.execute("select * from activities order by id"):
+            a = dict(a)
+            bgroups[group_key(a)].append(a["id"])
+        for ids in bgroups.values():
+            gid = uid("activity", *ids)
+            for i in ids:
+                old_group_uuid[i] = gid
+
     published_venues: set[int] = set()
     act_records = []
     for key, members in groups.items():
@@ -249,11 +282,18 @@ def main() -> int:
         status = "published" if v["id"] in published_venues else "draft"
         if v["quartier"] not in q_kreis:
             issues.append(f"Venue {v['id']} {v['name']}: quartier {v['quartier']!r} not in quarters table.")
-        emit("insert into public.venues (id, name, kind, quartier_id, address, features, organiser_id, status) values "
-             f"({q(vid)}, {q(v['name'])}, {q(v['kind'])}, "
-             f"(select qq.id from public.quartiers qq join public.districts d on d.id = qq.district_id "
-             f" where d.city_id='zurich' and qq.name = {q(v['quartier'])}), "
-             f"{q(v['address'])}, {q(v['features'])}, {q(org)}, {q(status)}) on conflict do nothing;")
+        qsel = (f"(select qq.id from public.quartiers qq join public.districts d on d.id = qq.district_id "
+                f" where d.city_id='zurich' and qq.name = {q(v['quartier'])})")
+        emit("insert into public.venues (id, name, kind, quartier_id, address, features, organiser_id, status, verification, data_origin) values "
+             f"({q(vid)}, {q(v['name'])}, {q(v['kind'])}, {qsel}, "
+             f"{q(v['address'])}, {q(v['features'])}, {q(org)}, {q(status)}, "
+             f"{q('provider_verified' if v['id'] in published_venues else 'unverified')}, 'legacy:sqlite') on conflict do nothing;")
+        # refresh a corrected quartier, but only on rows nobody has edited since the import
+        emit(f"update public.venues set quartier_id = {qsel} where id = {q(vid)} and updated_at = created_at "
+             f"and quartier_id is distinct from {qsel};")
+        if v["id"] in published_venues:
+            # a verified, published activity needs its venue to be public too (an earlier import may have left it as a draft)
+            emit(f"update public.venues set status = 'published', verification = 'provider_verified' where id = {q(vid)} and status = 'draft';")
         legacy("venues", v["id"], "venues", vid)
         link(v["provider_url"], "organiser" if host(v["provider_url"]) not in AGGREGATOR_HOSTS else "discovery", venue_id=vid)
         if v["source_url"] != v["provider_url"]:
@@ -263,7 +303,10 @@ def main() -> int:
     rep_acts = []
     for key, members, verification, status in act_records:
         first = members[0]
-        aid = uid("activity", *[m["id"] for m in members])
+        reused = {old_group_uuid[m["id"]] for m in members if m["id"] in old_group_uuid}
+        if len(reused) > 1:
+            issues.append(f"Activity group {[m['id'] for m in members]} merges previously separate imports {sorted(reused)}; keeping the first.")
+        aid = sorted(reused)[0] if reused else uid("activity", *[m["id"] for m in members])
         title = first["title"]
         if first["child_age_min_months"] is not None or first["child_age_max_months"] is not None:
             amin, amax, afrom = first["child_age_min_months"], first["child_age_max_months"], "source_structured"
@@ -328,44 +371,191 @@ def main() -> int:
                 link(m["source_url"], "discovery" if host(m["source_url"]) in AGGREGATOR_HOSTS else "evidence", activity_id=aid)
             if m["discovery_url"] and m["discovery_url"] not in (m["provider_url"], m["source_url"]):
                 link(m["discovery_url"], "discovery", activity_id=aid)
+            if m.get("booking_url") and m["booking_url"] not in (m["provider_url"], m["source_url"]):
+                link(m["booking_url"], "booking", activity_id=aid)
+        if last_checked:
+            emit(f"update public.activities set last_checked_on = greatest(last_checked_on, {q(last_checked)}::date) "
+                 f"where id = {q(aid)} and updated_at = created_at;")
         rep_acts.append((title, members, verification, status, n_tpl, n_occ, first["age_range"], amin, amax, afrom, reg_text, reg))
 
-    # ── legacy sources, checks, refresh log, inventory, leads ──
+    # ── sources, checks, coverage, refresh log, inventory, leads ──
+    chunk(True)
     licence_re = re.compile(r"CC BY-SA 4\.0")
-    for s in rows("select * from sources"):
-        source(s["url"], purpose=s["purpose"], status_note=s["status"],
-               licence="CC BY-SA 4.0" if licence_re.search(s["purpose"] or "") else None)
-        legacy("sources", s["url"], "sources", sources[s["url"]])
-        st = s["status"] or ""
-        m = re.search(r"checked (\d{4}-\d{2}-\d{2})", st)
+    checked_urls: set[str] = set()
+    for sc in (rows("select * from source_checks order by run_date, url") if has_table("source_checks") else []):
+        url = sc["url"]
+        source(url)  # make sure the source exists even if it is not in `sources`
+        o = (sc["outcome"] or "").strip().lower()
+        outcome = "failed" if o == "failed" else "ok"
+        note = f"[{sc['outcome']}] {sc['scope'] or ''}: {sc['details'] or ''}".strip()
+        emit("insert into public.source_checks (id, source_id, checked_on, outcome, note, origin) "
+             f"values ({q(uid('check2', sc['run_date'], url))}, {q(uid('source', url))}, {q(sc['run_date'])}, {q(outcome)}, {q(note)}, 'import:sqlite') "
+             "on conflict do nothing;")
+        checked_urls.add(url)
+        chunk()
+    for sr in rows("select * from sources"):
+        source(sr["url"], purpose=sr["purpose"], status_note=sr["status"],
+               licence="CC BY-SA 4.0" if licence_re.search(sr["purpose"] or "") else None)
+        legacy("sources", sr["url"], "sources", sources[sr["url"]])
+        emit(f"update public.sources set status_note = {q(sr['status'])} where url = {q(sr['url'])} and status_note is distinct from {q(sr['status'])};")
+        st = sr["status"] or ""
+        m = re.search(r"(?:checked|fetched) (\d{4}-\d{2}-\d{2})", st, re.I)
         outcome = "reference" if st.lower() == "reference" else "failed" if "fail" in st.lower() else "ok" if m else None
-        if outcome:
+        if outcome and sr["url"] not in checked_urls:
             emit("insert into public.source_checks (id, source_id, checked_on, outcome, note, origin) "
-                 f"select {q(uid('check', s['url']))}, id, {q(m.group(1) if m else None)}, {q(outcome)}, {q(st)}, 'import:sqlite' "
-                 f"from public.sources where url = {q(s['url'])} on conflict do nothing;")
+                 f"values ({q(uid('check', sr['url']))}, {q(uid('source', sr['url']))}, {q(m.group(1) if m else None)}, {q(outcome)}, {q(st)}, 'import:sqlite') on conflict do nothing;")
 
+    if has_table("district_checks"):
+        for dc in rows("select * from district_checks order by run_date, kreis"):
+            emit("insert into public.coverage_checks (id, run_date, district_number, depth, details) values "
+                 f"({q(uid('coverage', dc['run_date'], dc['kreis']))}, {q(dc['run_date'])}, {dc['kreis']}, {q(dc['depth'])}, {q(dc['details'])}) on conflict do nothing;")
+
+    base_refresh: dict[tuple, int] = {}
+    if args.base:
+        for r in bdb.execute("select rowid, * from refresh_log"):
+            base_refresh[(r["run_date"], r["description"])] = r["rowid"]
     for r in rows("select rowid, * from refresh_log order by run_date, rowid"):
-        rid = uid("refresh", r["rowid"])
+        key = (r["run_date"], r["description"])
+        rid = uid("refresh", base_refresh[key]) if key in base_refresh else uid("refresh2", r["run_date"], r["description"])
         emit(f"insert into public.refresh_runs (id, run_date, description, origin) values "
              f"({q(rid)}, {q(r['run_date'])}, {q(r['description'])}, 'import:sqlite') on conflict do nothing;")
-        legacy("refresh_log", r["rowid"], "refresh_runs", rid)
 
-    for p in rows("select * from provider_inventory"):
-        cid = uid("crawl", p["url"])
+    for pi in rows("select * from provider_inventory"):
+        cid = uid("crawl", pi["url"])
         emit("insert into public.crawl_targets (id, url, scope, action_note, status) values "
-             f"({q(cid)}, {q(p['url'])}, {q(p['scope'])}, {q(p['coverage_action'])}, 'proposed') on conflict do nothing;")
-    for s in rows("select * from sources where url like '%.ics' or url like '%.geojson'"):
+             f"({q(cid)}, {q(pi['url'])}, {q(pi['scope'])}, {q(pi['coverage_action'])}, 'proposed') on conflict do nothing;")
+    for sr in rows("select * from sources where url like '%.ics' or url like '%.geojson'"):
         emit("insert into public.crawl_targets (id, url, scope, action_note, status, last_note) values "
-             f"({q(uid('crawl', s['url']))}, {q(s['url'])}, {q(s['purpose'])}, 'Structured feed: integrate first (stage B)', "
-             f"'proposed', {q(s['status'])}) on conflict do nothing;")
+             f"({q(uid('crawl', sr['url']))}, {q(sr['url'])}, {q(sr['purpose'])}, 'Structured feed: integrate first (stage B)', "
+             f"'proposed', {q(sr['status'])}) on conflict do nothing;")
 
-    lead_status = {"pending original-provider verification": "new", "review": "in_review"}
-    for l in rows("select * from discovery_leads"):
-        lid = uid("lead", l["url"])
+    def lead_state(text: str | None) -> str:
+        t = (text or "").lower()
+        if t.startswith("resolved"):
+            return "accepted"
+        if t.startswith("excluded"):
+            return "rejected"
+        if t.startswith("pending"):
+            return "new"
+        return "in_review"
+
+    leads_in = [(l["url"], l["title"], l["kreis"], l["checked"], l["status"]) for l in rows("select * from discovery_leads")]
+    # reported by the project owner on 2026-11-18: missing from every dataset so far
+    leads_in.append(("owner-report:kirchgemeindehaus-zentrum-rigiblick", "Kirchgemeindehaus Zentrum Rigiblick (reported missing)", 6, "2026-11-18",
+                     "Review: reported by the project owner as missing. Not in the database or in the Chreis+ feeds (only 'Theater Rigiblick' is). "
+                     "Find the organiser's page (probably the reformed parish programme) and check family offers. District 6 assumed from Theater Rigiblick."))
+    for url, title, kreis, checked, status in leads_in:
+        lid = uid("lead", url)
+        real_url = url if url.startswith("http") else None
         emit("insert into public.leads (id, submitted_by, url, name, district_number, origin, status, status_note, checked_on) values "
-             f"({q(lid)}, null, {q(l['url'])}, {q(l['title'])}, {q(l['kreis'])}, 'import', "
-             f"{q(lead_status.get((l['status'] or '').lower(), 'new'))}, {q(l['status'])}, {q(l['checked'])}) on conflict do nothing;")
-        legacy("discovery_leads", l["url"], "leads", lid)
+             f"({q(lid)}, null, {q(real_url)}, {q(title)}, {q(kreis)}, 'import', {q(lead_state(status))}, {q(status)}, {q(checked)}) on conflict do nothing;")
+        # refresh imported leads that nobody has triaged yet
+        emit(f"update public.leads set status = {q(lead_state(status))}, status_note = {q(status)}, checked_on = {q(checked)} "
+             f"where id = {q(lid)} and origin = 'import' and status in ('new', 'in_review') and status_note is distinct from {q(status)};")
+        legacy("discovery_leads", url, "leads", lid)
+
+    # ── Chreis+ feeds: places and dated sessions (aggregator data, NOT confirmed with the organisers) ──
+    feed_stats: dict[str, object] = {}
+    feed_report: list[str] = []
+    if has_table("feed_places") and has_table("feed_occurrences"):
+        chunk(True)
+        place_key: dict[str, str] = {}
+        for v in venues:
+            if v["address"]:
+                place_key.setdefault(addr_key(v["address"]), venue_uuid[v["id"]])
+        n_new = n_matched = n_excl = 0
+        for pl in rows("select * from feed_places order by source_id"):
+            if (pl["status"] or "").startswith("excluded"):
+                n_excl += 1
+                continue
+            if pl["matched_venue_id"]:
+                vid = venue_uuid[pl["matched_venue_id"]]
+                n_matched += 1
+                legacy("feed_places", pl["source_id"], "venues", vid)
+                link(pl["provider_source_url"], "evidence", venue_id=vid)
+                link(pl["discovery_url"], "discovery", venue_id=vid)
+            else:
+                vid = uid("feedplace", pl["source_id"])
+                n_new += 1
+                if pl["quartier"] not in q_kreis:
+                    issues.append(f"Feed place {pl['name']!r}: quartier {pl['quartier']!r} unknown; stored without district.")
+                emit("insert into public.venues (id, name, quartier_id, address, status, verification, data_origin) values "
+                     f"({q(vid)}, {q(pl['name'])}, "
+                     f"(select qq.id from public.quartiers qq join public.districts d on d.id = qq.district_id where d.city_id='zurich' and qq.name = {q(pl['quartier'])}), "
+                     f"{q(pl['address'])}, 'published', 'secondary_source', 'feed:chreis') on conflict do nothing;")
+                legacy("feed_places", pl["source_id"], "venues", vid)
+                link(pl["provider_source_url"], "listing", venue_id=vid)
+                link(pl["discovery_url"], "discovery", venue_id=vid)
+            if pl["address"]:
+                place_key.setdefault(addr_key(pl["address"]), vid)
+            chunk()
+        feed_stats.update(places_new=n_new, places_matched=n_matched, places_excluded=n_excl)
+
+        occ = rows("select * from feed_occurrences order by uid, start_raw")
+        last_seen = max((o["last_seen"] for o in occ if o["last_seen"]), default=None)
+        fgroups: dict[tuple, list[dict]] = defaultdict(list)
+        for o in occ:
+            fgroups[(norm(o["title"]), o["provider_url"], addr_key(o["location"]))].append(o)
+        verified_titles = {norm(r[0]["title"]): r[0]["title"] for r in [(m, None) for _, ms, v_, st_ in act_records if v_ == "provider_verified" for m in ms[:1]]}
+        # Postal code -> Kreis, ONLY where >= 3 known places carry the code and all of them are in the same Kreis.
+        plz_of = lambda t: (re.search(r"\b(80\d\d)\b", t or "") or [None, None])[1]
+        plz_votes: dict[str, set] = defaultdict(set)
+        plz_count: dict[str, int] = defaultdict(int)
+        for pl in rows("select address, kreis from feed_places where kreis is not null"):
+            z = plz_of(pl["address"])
+            if z:
+                plz_votes[z].add(pl["kreis"]); plz_count[z] += 1
+        for v in venues:
+            z = plz_of(v["address"])
+            if z and v["quartier"] in q_kreis:
+                plz_votes[z].add(q_kreis[v["quartier"]]); plz_count[z] += 1
+        plz_kreis = {z: next(iter(k)) for z, k in plz_votes.items() if len(k) == 1 and plz_count[z] >= 3}
+        n_plz = 0
+        n_pub = n_arch = n_occ = n_with_venue = n_noloc = n_midnight = 0
+        venues_to_show: set[str] = set()
+        dup_notes: list[str] = []
+        for (nt, purl, ak), items in fgroups.items():
+            aid = uid("feedactivity", nt, purl, ak)
+            first = items[0]
+            vid = place_key.get(ak) if ak else None
+            n_with_venue += 1 if vid else 0
+            n_noloc += 0 if (first["location"] or "").strip() else 1
+            sessions = {}
+            for o in items:
+                raw = o["start_raw"]
+                d = f"{raw[0:4]}-{raw[4:6]}-{raw[6:8]}"
+                tm = f"{raw[9:11]}:{raw[11:13]}" if len(raw) >= 13 else None
+                if tm == "00:00":
+                    tm = None  # midnight in a feed usually means "no time given"
+                    n_midnight += 1
+                sessions[(d, tm)] = o["uid"]
+            has_future = any(d >= (last_seen or "9999") for d, _ in sessions)
+            status = "published" if has_future else "archived"
+            n_pub += status == "published"; n_arch += status == "archived"
+            if vid and status == "published":
+                venues_to_show.add(vid)
+            last_checked = max((o["last_seen"] for o in items if o["last_seen"]), default=None)
+            kreis_by_plz = plz_kreis.get(plz_of(first["location"])) if (not vid and first["location"]) else None
+            n_plz += 1 if kreis_by_plz else 0
+            dsel = f"(select id from public.districts where city_id = 'zurich' and number = {kreis_by_plz})" if kreis_by_plz else "null"
+            emit("insert into public.activities (id, venue_id, title, verification, last_checked_on, status, location_text, data_origin, district_id, district_basis) values "
+                 f"({q(aid)}, {q(vid)}, {q(first['title'])}, 'secondary_source', {q(last_checked)}, {q(status)}, "
+                 f"{q((first['location'] or '').strip() or None) if not vid else 'null'}, 'feed:chreis', {dsel}, {q('postal_code') if kreis_by_plz else 'null'}) on conflict do nothing;")
+            for (d, tm), ref in sorted(sessions.items()):
+                n_occ += 1
+                emit("insert into public.occurrences (id, activity_id, date, start_time, status, evidence_url, source_ref) values "
+                     f"({q(uid('feedocc', ref, d, tm))}, {q(aid)}, {q(d)}, {q(tm)}, 'listed', {q(purl)}, {q(ref)}) on conflict do nothing;")
+            link(purl, "listing", activity_id=aid)
+            link(first["discovery_url"], "discovery", activity_id=aid)
+            if nt in verified_titles:
+                dup_notes.append(f"Feed entry **{first['title']}** has the same title as the verified activity **{verified_titles[nt]}**: possible duplicate (kept separate).")
+            chunk()
+        # a published session must show its venue: reveal venues that were only hidden because their own listings are unverified
+        for vid in sorted(venues_to_show):
+            emit(f"update public.venues set status = 'published', verification = case when verification = 'unverified' then 'secondary_source' else verification end "
+                 f"where id = {q(vid)} and status = 'draft';")
+        feed_stats.update(by_postal_code=n_plz, plz_rules=len(plz_kreis), groups=len(fgroups), published=n_pub, archived=n_arch, sessions=n_occ, with_venue=n_with_venue, no_location=n_noloc,
+                          midnight=n_midnight, last_seen=last_seen, duplicates=dup_notes)
 
     emit("commit;")
 
@@ -387,9 +577,9 @@ def main() -> int:
     # ── report ──
     pub = [r for r in rep_acts if r[3] == "published"]
     rep += [
-        "# Import report: Quartierjournal.sqlite → Supabase",
+        "# Import report: Quartierjournal.sqlite (2026-11-18 data) → Supabase",
         "",
-        "Generated by `worker/import_sqlite.py`. Nothing is merged or deleted automatically; this report lists what was done and what needs review.",
+        "Generated by `worker/import_sqlite.py` (re-runnable on top of an earlier import: `--base <previous file>` keeps ids stable). Nothing is merged or deleted automatically; this report lists what was done and what needs review.",
         "",
         "## Source contents",
         "",
@@ -404,7 +594,7 @@ def main() -> int:
         rep.append(f"| `{t}` | {db.execute(f'select count(*) from {t}').fetchone()[0]} | {target} |")
     rep += [
         "",
-        f"The 44 legacy activity rows become **{len(rep_acts)} activities**. Rows were grouped when venue, title, type, age text, price, registration, audience and organiser URL were all identical, e.g. one weekly template per weekday, or one dated occurrence per row.",
+        f"The {len(acts)} legacy activity rows become **{len(rep_acts)} activities**. Rows were grouped when venue, title, type, age text, price, registration, audience and organiser URL were all identical, e.g. one weekly template per weekday, or one dated occurrence per row.",
         "",
         f"**Published immediately: {len(pub)} activities** (provider-verified in the legacy data) at {len(published_venues)} venues. "
         f"The other {len(rep_acts) - len(pub)} activities are imported as **draft**, so they are visible to admins for review but not to the public.",
@@ -418,6 +608,23 @@ def main() -> int:
         venue = next(v["name"] for v in venues if v["id"] == members[0]["venue_id"])
         age = "unknown" if afrom is None else f"{amin if amin is not None else '?'}–{amax if amax is not None else '?'} ({afrom.replace('source_', '')})"
         rep.append(f"| {title} · {venue} | {', '.join(str(m['id']) for m in members)} | {verification} | {status} | {n_tpl} | {n_occ} | {atext or '—'} → {age} |")
+    if feed_stats:
+        fs = feed_stats
+        rep += [
+            "## Chreis+ feeds (aggregator data, not confirmed with the organisers)",
+            "",
+            f"Staged by the data pipeline from the Chreis+ ICS and GeoJSON feeds (CC BY-SA 4.0, attribution required; the feeds exclude images and original source prose, and so does this import). Last seen: {fs['last_seen']}.",
+            "",
+            f"- **Places:** {fs['places_new']} imported as venues (marked *found via Chreis+*), {fs['places_matched']} matched to venues that already existed (linked, not duplicated), {fs['places_excluded']} skipped as outside the city perimeter.",
+            f"- **Sessions:** {fs['sessions']} dated sessions grouped into **{fs['groups']} activities** (same title, same listing page and same address). {fs['published']} have a date today or later and are published; {fs['archived']} are in the past and are kept as history but not published.",
+            f"- **Where:** {fs['with_venue']} activities could be placed at a known venue by their address (this also gives their Kreis). For {fs['by_postal_code']} more, the Kreis was derived from the postal code (rule: at least 3 known places carry that code and all are in one Kreis; {fs['plz_rules']} codes qualify; this is marked as derived on the site). The rest keep the feed's address text and the Kreis stays unknown. {fs['no_location']} have no location at all.",
+            f"- **Times:** a start time of exactly 00:00 is treated as \"no time given\" ({fs['midnight']} sessions). There are no end times, ages, prices or registration details in the feed, so they stay unknown.",
+            "- **Links:** the feed's event page is stored as a *listing* link, never as the organiser, because the original organiser is unverified. The feed itself is stored as the *discovery* link.",
+            "- **Shown as:** verification level *secondary source*, so the site labels them \"found via Chreis+, not yet confirmed with the organiser\". An admin can promote an entry to *provider verified* after checking it.",
+            "",
+        ]
+        if fs["duplicates"]:
+            rep += ["Possible duplicates between a feed entry and a verified activity (not merged):", ""] + [f"- {d}" for d in fs["duplicates"]] + [""]
     rep += [
         "",
         "## How details were interpreted",
@@ -439,7 +646,8 @@ def main() -> int:
     rep += [f"- {i}" for i in issues] or ["- none"]
     rep += ["", "## Not in the legacy database", "",
             "- **Images:** none. The prototype's photos have unknown licences and are not imported (see `docs/image-register.md`).",
-            "- **Providers:** there is no separate provider table. Organiser identity comes from `discovery_directory` and organiser URLs."]
+            "- **Providers:** there is no separate provider table. Organiser identity comes from `discovery_directory` and organiser URLs.",
+            "- **Quartier per session:** the Chreis+ sessions do not say which quartier feed they came from. Adding it to the next export would let us place many more of them in a Kreis."]
 
     with open(args.sql, "w") as f:
         f.write("\n".join(out) + "\n")

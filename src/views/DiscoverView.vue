@@ -4,7 +4,8 @@ import { useRoute, useRouter } from 'vue-router'
 import { useCatalogue } from '@/stores/catalogue'
 import { useAuth } from '@/stores/auth'
 import { useMe } from '@/stores/me'
-import { emptyFilters, fitsFreeTime, matches, sortCards, type DiscoverFilters } from '@/domain/filters'
+import { emptyFilters, fitsFreeTime, isEnded, isVerified, matches, sortCards, type DiscoverFilters } from '@/domain/filters'
+import { todayInZurich } from '@/domain/time'
 import type { Weekday } from '@/domain/types'
 import { useFormat } from '@/composables/useFormat'
 import ActivityTile from '@/components/ActivityTile.vue'
@@ -38,6 +39,10 @@ function fromQuery(): DiscoverFilters & { fit: boolean } {
     forCaregiver: (q.for === 'caregiver' || q.for === 'child' ? q.for : 'all'),
     favouritesOnly: q.fav === '1',
     fit: q.fit === '1',
+    scope: q.scope === 'v' ? 'verified' : 'all',
+    when: (q.w === 'today' || q.w === 'week' || q.w === 'month' ? q.w : 'any'),
+    includeUnknownAge: q.uage === '1',
+    includeUnknownKreis: q.ukreis === '1',
   }
 }
 const s = reactive(fromQuery())
@@ -58,6 +63,10 @@ watch(s, () => {
   if (s.forCaregiver !== 'all') q.for = s.forCaregiver
   if (s.favouritesOnly) q.fav = '1'
   if (s.fit) q.fit = '1'
+  if (s.scope === 'verified') q.scope = 'v'
+  if (s.when !== 'any') q.w = s.when
+  if (s.includeUnknownAge) q.uage = '1'
+  if (s.includeUnknownKreis) q.ukreis = '1'
   router.replace({ query: q })
 }, { deep: true })
 
@@ -65,15 +74,24 @@ onMounted(() => cat.load())
 
 const extraCount = computed(() =>
   [s.districts.length > 0, s.timeOfDay, s.childAgeMonths != null, s.category, s.freeOnly, s.noRegistration,
-    s.forCaregiver !== 'all', s.favouritesOnly, s.fit].filter(Boolean).length)
+    s.forCaregiver !== 'all', s.favouritesOnly, s.fit, s.when !== 'any'].filter(Boolean).length)
 
 const hasSchedule = computed(() => me.blocks.some((b) => me.selfIds.has(b.caregiver_id)))
 
+const today = todayInZurich()
+const live = computed(() => cat.cards.filter((a) => !isEnded(a, today)))
+const verifiedCount = computed(() => live.value.filter(isVerified).length)
+
 const results = computed(() => {
-  const out = cat.cards.filter((a) => matches(a, s, me.favourites))
+  const out = cat.cards.filter((a) => matches(a, s, me.favourites, today))
   const fitted = s.fit && hasSchedule.value ? out.filter((a) => fitsFreeTime(a, me.blocks, me.selfIds)) : out
   return sortCards(fitted)
 })
+// entries that a filter hides only because a detail is unknown: say so, and offer to show them
+const hiddenNoKreis = computed(() => (s.districts.length && !s.includeUnknownKreis
+  ? cat.cards.filter((a) => a.district_number == null && matches(a, { ...s, includeUnknownKreis: true }, me.favourites, today)).length : 0))
+const hiddenNoAge = computed(() => (s.childAgeMonths != null && !s.includeUnknownAge
+  ? cat.cards.filter((a) => matches(a, { ...s, includeUnknownAge: true }, me.favourites, today)).length - results.value.length : 0))
 
 function toggleDistrict(n: number) {
   s.districts = s.districts.includes(n) ? s.districts.filter((x) => x !== n) : [...s.districts, n].sort((a, b) => a - b)
@@ -107,6 +125,11 @@ const ageLabel = (m: number) => (m < 12 ? 'discover.ageMonths' : null)
       </button>
     </div>
 
+    <div class="chips scope" role="group" :aria-label="$t('ui.disc.scopeAll')">
+      <button class="chip" :aria-pressed="s.scope === 'all'" @click="s.scope = 'all'">{{ $t('ui.disc.scopeAll') }} ({{ live.length }})</button>
+      <button class="chip" :aria-pressed="s.scope === 'verified'" @click="s.scope = 'verified'">{{ $t('ui.disc.scopeVerified') }} ({{ verifiedCount }})</button>
+    </div>
+
     <section v-show="filtersOpen" id="filters" class="panel stack">
       <fieldset class="kreise">
         <legend class="small" style="font-weight: 500">{{ $t('discover.chooseKreis') }}</legend>
@@ -116,6 +139,14 @@ const ageLabel = (m: number) => (m < 12 ? 'discover.ageMonths' : null)
         </div>
       </fieldset>
       <div class="filters">
+        <label class="field"><span>{{ $t('ui.disc.when') }}</span>
+          <select v-model="s.when" class="input">
+            <option value="any">{{ $t('ui.disc.whenAny') }}</option>
+            <option value="today">{{ $t('ui.disc.whenToday') }}</option>
+            <option value="week">{{ $t('ui.disc.whenWeek') }}</option>
+            <option value="month">{{ $t('ui.disc.whenMonth') }}</option>
+          </select>
+        </label>
         <label class="field"><span>{{ $t('discover.age') }}</span>
           <select v-model="s.childAgeMonths" class="input">
             <option :value="null">{{ $t('discover.ageAny') }}</option>
@@ -147,6 +178,8 @@ const ageLabel = (m: number) => (m < 12 ? 'discover.ageMonths' : null)
       <div class="chips">
         <button class="chip" :aria-pressed="s.freeOnly" @click="s.freeOnly = !s.freeOnly">{{ $t('discover.free') }}</button>
         <button class="chip" :aria-pressed="s.noRegistration" @click="s.noRegistration = !s.noRegistration">{{ $t('discover.noReg') }}</button>
+        <button class="chip" :aria-pressed="s.includeUnknownKreis" @click="s.includeUnknownKreis = !s.includeUnknownKreis">{{ $t('ui.disc.unknownKreis') }}</button>
+        <button class="chip" :aria-pressed="s.includeUnknownAge" @click="s.includeUnknownAge = !s.includeUnknownAge">{{ $t('ui.disc.unknownAge') }}</button>
         <button v-if="auth.loggedIn" class="chip" :aria-pressed="s.favouritesOnly" @click="s.favouritesOnly = !s.favouritesOnly">♥ {{ $t('discover.favs') }}</button>
         <button v-if="auth.loggedIn" class="chip" :aria-pressed="s.fit" :disabled="!hasSchedule" @click="s.fit = !s.fit">{{ $t('discover.fit') }}</button>
       </div>
@@ -165,13 +198,15 @@ const ageLabel = (m: number) => (m < 12 ? 'discover.ageMonths' : null)
     <p v-else-if="cat.status === 'loading' || cat.status === 'idle'" aria-live="polite">{{ $t('common.loading') }}</p>
     <template v-else>
       <p class="small" aria-live="polite" style="margin: 0">{{ $t('discover.results', results.length) }}</p>
+      <p v-if="hiddenNoKreis" class="small hint">{{ $t('ui.disc.hiddenKreis', { n: hiddenNoKreis }) }} <button class="linkbtn" @click="s.includeUnknownKreis = true">{{ $t('ui.disc.showThem') }}</button></p>
+      <p v-if="hiddenNoAge > 0" class="small hint">{{ $t('ui.disc.hiddenAge', { n: hiddenNoAge }) }} <button class="linkbtn" @click="s.includeUnknownAge = true">{{ $t('ui.disc.showThem') }}</button></p>
       <div class="grid-cards">
         <ActivityTile v-for="a in results.slice(0, limit)" :key="a.id" :a="a" />
       </div>
       <p v-if="!results.length">{{ $t('discover.none') }}</p>
       <div v-if="results.length > limit" class="more"><button class="btn" @click="limit += PAGE">{{ $t('ui.moreCount', { n: results.length - limit }) }}</button></div>
       <PlaceList />
-      <p class="tiny muted">{{ $t('discover.attribution') }}</p>
+      <p class="tiny muted">{{ $t('ui.disc.attribution') }} <a href="https://chreis.plus" target="_blank" rel="noopener">{{ $t('ui.disc.chreisLink') }}</a></p>
     </template>
   </main>
 </template>
@@ -183,4 +218,5 @@ fieldset { border: 0; padding: 0; margin: 0; display: flex; flex-direction: colu
 .chip:disabled { opacity: .5; cursor: not-allowed; }
 .days .chip { min-width: 58px; }
 .more { display: flex; justify-content: center; }
+.hint { margin: 0; color: var(--magenta-ink); }
 </style>

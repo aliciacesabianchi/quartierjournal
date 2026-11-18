@@ -26,7 +26,7 @@ const de: typeof en = {
   },
   discover: {
     title: 'Entdecken',
-    sub: 'Aktivitäten, Treffpunkte und Angebote für Kinder von 0–4 Jahren in Zürich. Die Angaben stammen von den Anbietern. Bitte vor dem Besuch dort prüfen.',
+    sub: 'Aktivitäten, Treffpunkte und Veranstaltungen in Zürich, mit Schwerpunkt auf Kindern von 0–4 Jahren. Die Angaben stammen von den Anbietern oder aus öffentlichen Verzeichnissen (gekennzeichnet). Bitte vor dem Besuch beim Anbieter prüfen.',
     search: 'Suchen: Name, Ort, Kreis …', filters: 'Filter', clear: 'Filter zurücksetzen',
     allDays: 'Alle Tage', allKreise: 'Alle Kreise', chooseKreis: 'Kreis',
     age: 'Alter des Kindes', ageAny: 'Jedes Alter', ageMonths: 'Unter 1 Jahr', ageYears: '{n} Jahre | {n} Jahr | {n} Jahre',

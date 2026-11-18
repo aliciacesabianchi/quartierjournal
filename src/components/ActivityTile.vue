@@ -20,6 +20,10 @@ const busy = ref(false)
 const failed = ref<string | null>(null)
 
 const when = computed(() => f.templateSummary(props.a.templates) ?? f.nextDate(props.a))
+const confirmed = computed(() => props.a.verification === 'provider_verified')
+const moreDates = computed(() => (props.a.templates.length ? 0 : Math.max(0, props.a.upcoming.length - 1)))
+const place = computed(() => props.a.venue_name || props.a.location_text)
+const sourceUrl = computed(() => props.a.organiser_url || props.a.listing_url)
 const fav = computed(() => me.favourites.has(props.a.id))
 const planned = computed(() => me.plan.some((p) => p.activity_id === props.a.id))
 const link = computed(() => `${appUrl()}/a/${props.a.id}`)
@@ -53,6 +57,7 @@ async function share() {
 <template>
   <article class="tile">
     <div class="ph" aria-hidden="false">
+      <span v-if="!confirmed" class="flag">{{ $t('ui.tile.unconfirmed') }}</span>
       <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="1.8"/><path d="M4 18l5-5 4 4 3-3 4 4"/></svg>
       <span>{{ a.title }}</span>
       <button
@@ -67,17 +72,17 @@ async function share() {
       <h3><RouterLink :to="{ name: 'activity', params: { id: a.id } }" class="title">{{ a.title }}</RouterLink></h3>
       <div class="meta">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
-        <span>{{ when || $t('card.noUpcoming') }}</span>
+        <span>{{ when || $t('card.noUpcoming') }}<template v-if="moreDates"> · {{ $t('ui.tile.moreDates', { n: moreDates }) }}</template></span>
       </div>
       <div class="meta">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M12 21s7-6.5 7-12a7 7 0 0 0-14 0c0 5.5 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/></svg>
-        <span>{{ a.venue_name }}<template v-if="a.district_number">, {{ f.kreis(a.district_number) }}</template></span>
+        <span>{{ place || $t('ui.tile.noPlace') }}<template v-if="a.district_number">, {{ f.kreis(a.district_number) }}</template></span>
       </div>
       <div class="small">{{ f.price(a) }} · {{ f.age(a) }}</div>
       <div v-if="a.schedule_notes" class="tiny muted note">{{ a.schedule_notes }}</div>
       <div class="small reg">
         <span>{{ $t(`card.reg.${a.registration}`) }}</span>
-        <template v-if="a.organiser_url"> · <a :href="a.organiser_url" target="_blank" rel="noopener">{{ $t('card.organiser') }}</a></template>
+        <template v-if="sourceUrl"> · <a :href="sourceUrl" target="_blank" rel="noopener">{{ a.organiser_url ? $t('card.organiser') : $t('ui.tile.source') }}</a></template>
       </div>
       <div class="foot">
         <button class="btn small" :class="planned ? 'on' : 'primary'" :disabled="busy" @click="addToPlan">
@@ -94,6 +99,7 @@ async function share() {
 .tile { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 20px; overflow: hidden; background: #fff; }
 .ph { position: relative; height: 170px; background: #e8e6e1; border-bottom: 1px dashed #cfcac2; color: #6b6963; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 0 16px; text-align: center; font-size: 13px; }
 .ph span { overflow-wrap: anywhere; }
+.flag { position: absolute; left: 12px; top: 12px; max-width: calc(100% - 70px); background: #fff; border-radius: var(--pill); padding: 4px 10px; font-size: 12px; color: var(--ink); text-align: left; }
 .fav { position: absolute; right: 12px; top: 12px; width: 38px; height: 38px; border-radius: 50%; border: 0; background: #fff; color: var(--ink); font-size: 19px; cursor: pointer; line-height: 1; }
 .fav[aria-pressed='true'] { color: var(--magenta-ink); }
 .body { padding: 16px; display: flex; flex-direction: column; gap: 7px; flex: 1; }

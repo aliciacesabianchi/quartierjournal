@@ -21,6 +21,20 @@ const en = {
     mobilePage: 'Mon–Thu', mobilePage2: 'Fri–Sun', emptyGrid: 'Add your first care time with “+ Care time”.', open: 'Open',
     monthNone: 'Nothing planned this month.', weeklyShort: 'every week', thisWeek: 'This week',
   },
+  disc: {
+    scopeAll: 'All events in Zürich', scopeVerified: 'Confirmed with organiser',
+    when: 'When', whenAny: 'Any time', whenToday: 'Today', whenWeek: 'Next 7 days', whenMonth: 'Next 30 days',
+    unknownAge: 'Also show entries with no age given', unknownKreis: 'Also show entries with no Kreis given',
+    hiddenKreis: '{n} entries without a Kreis are hidden.', hiddenAge: '{n} entries without an age are hidden.', showThem: 'Show them',
+    attribution: 'Entries marked “via Chreis+” come from the open data of Chreis+ (CC BY-SA 4.0), without images or original texts.',
+    chreisLink: 'chreis.plus',
+  },
+  lastSeen: 'Last seen in the directory: {date}',
+  tile: { unconfirmed: 'Via Chreis+ · not confirmed', moreDates: '+{n} more dates', noPlace: 'Place not given', source: 'Source', kreisDerived: 'Kreis derived from the postal code' },
+  feedInfo: 'This entry comes from the Chreis+ directory and has not been confirmed with the organiser. Age, price and registration are not known, and it may not be aimed at young children. Please check with the organiser.',
+  allDates: 'Show all {n} dates', fewerDates: 'Show fewer',
+  placesPage: { sub: 'Places, community centres, parks and venues across Zürich. Entries marked “via Chreis+” are not confirmed with the organisers.', search: 'Search places …', onlyConfirmed: 'Only confirmed', count: 'No places | 1 place | {n} places', more: 'Show more', offers: '{n} listed offers', viewOffers: 'See offers', viaChreis: 'Via Chreis+ · not confirmed', all: 'All places ({n})', none: 'No places found.' },
+  admin: { promote: 'Mark as confirmed', showFeed: 'Chreis+ entries', showDrafts: 'Drafts', showConfirmed: 'Confirmed', search: 'Search title …', limited: 'Showing the first {n}. Use the search to narrow down.' },
   profile: { aboutMe: 'About me', favourites: 'Favourites', noFavs: 'No favourites yet. Tap the heart on an activity.', myPlan: 'My plan', noPlan: 'Nothing in your plan yet.', change: 'Change', remove: 'Remove', logout: 'Log out' },
 }
 const de: typeof en = {
@@ -44,6 +58,20 @@ const de: typeof en = {
     mobilePage: 'Mo–Do', mobilePage2: 'Fr–So', emptyGrid: 'Trag deine erste Betreuungszeit mit «+ Betreuungszeit» ein.', open: 'Öffnen',
     monthNone: 'In diesem Monat ist nichts geplant.', weeklyShort: 'jede Woche', thisWeek: 'Diese Woche',
   },
+  disc: {
+    scopeAll: 'Alle Veranstaltungen in Zürich', scopeVerified: 'Beim Anbieter bestätigt',
+    when: 'Wann', whenAny: 'Jederzeit', whenToday: 'Heute', whenWeek: 'Nächste 7 Tage', whenMonth: 'Nächste 30 Tage',
+    unknownAge: 'Auch Einträge ohne Altersangabe zeigen', unknownKreis: 'Auch Einträge ohne Kreis-Angabe zeigen',
+    hiddenKreis: '{n} Einträge ohne Kreis-Angabe sind ausgeblendet.', hiddenAge: '{n} Einträge ohne Altersangabe sind ausgeblendet.', showThem: 'Anzeigen',
+    attribution: 'Einträge mit «Über Chreis+» stammen aus den offenen Daten von Chreis+ (CC BY-SA 4.0), ohne Bilder und Originaltexte.',
+    chreisLink: 'chreis.plus',
+  },
+  lastSeen: 'Zuletzt im Verzeichnis gesehen: {date}',
+  tile: { unconfirmed: 'Über Chreis+ · nicht bestätigt', moreDates: '+{n} weitere Termine', noPlace: 'Ort nicht angegeben', source: 'Quelle', kreisDerived: 'Kreis aus der Postleitzahl abgeleitet' },
+  feedInfo: 'Dieser Eintrag stammt aus dem Verzeichnis von Chreis+ und ist noch nicht beim Anbieter bestätigt. Alter, Preis und Anmeldung sind nicht bekannt, und er richtet sich möglicherweise nicht an kleine Kinder. Bitte beim Anbieter prüfen.',
+  allDates: 'Alle {n} Termine anzeigen', fewerDates: 'Weniger anzeigen',
+  placesPage: { sub: 'Orte, Gemeinschaftszentren, Parks und Treffpunkte in ganz Zürich. Einträge mit «Über Chreis+» sind nicht bei den Anbietern bestätigt.', search: 'Orte suchen …', onlyConfirmed: 'Nur bestätigte', count: 'Keine Orte | 1 Ort | {n} Orte', more: 'Mehr anzeigen', offers: '{n} Angebote in der Liste', viewOffers: 'Angebote ansehen', viaChreis: 'Über Chreis+ · nicht bestätigt', all: 'Alle Orte ({n})', none: 'Keine Orte gefunden.' },
+  admin: { promote: 'Als bestätigt markieren', showFeed: 'Chreis+-Einträge', showDrafts: 'Entwürfe', showConfirmed: 'Bestätigt', search: 'Titel suchen …', limited: 'Die ersten {n} werden angezeigt. Mit der Suche eingrenzen.' },
   profile: { aboutMe: 'Über mich', favourites: 'Favoriten', noFavs: 'Noch keine Favoriten. Tippe bei einem Angebot auf das Herz.', myPlan: 'Meine Termine', noPlan: 'Noch nichts in deinem Plan.', change: 'Ändern', remove: 'Entfernen', logout: 'Abmelden' },
 }
 const it: typeof en = {
@@ -67,6 +95,20 @@ const it: typeof en = {
     mobilePage: 'Lun–Gio', mobilePage2: 'Ven–Dom', emptyGrid: 'Aggiungi il tuo primo orario con «+ Orario».', open: 'Apri',
     monthNone: 'Questo mese non c’è nulla in programma.', weeklyShort: 'ogni settimana', thisWeek: 'Questa settimana',
   },
+  disc: {
+    scopeAll: 'Tutti gli eventi a Zurigo', scopeVerified: 'Confermati dall’organizzatore',
+    when: 'Quando', whenAny: 'In qualsiasi momento', whenToday: 'Oggi', whenWeek: 'Prossimi 7 giorni', whenMonth: 'Prossimi 30 giorni',
+    unknownAge: 'Mostra anche le voci senza indicazione dell’età', unknownKreis: 'Mostra anche le voci senza circolo',
+    hiddenKreis: '{n} voci senza circolo sono nascoste.', hiddenAge: '{n} voci senza età sono nascoste.', showThem: 'Mostra',
+    attribution: 'Le voci con «Tramite Chreis+» provengono dai dati aperti di Chreis+ (CC BY-SA 4.0), senza immagini né testi originali.',
+    chreisLink: 'chreis.plus',
+  },
+  lastSeen: 'Ultima volta visto nell’elenco: {date}',
+  tile: { unconfirmed: 'Tramite Chreis+ · non confermato', moreDates: '+{n} altre date', noPlace: 'Luogo non indicato', source: 'Fonte', kreisDerived: 'Circolo dedotto dal codice postale' },
+  feedInfo: 'Questa voce proviene dall’elenco di Chreis+ e non è ancora stata confermata dall’organizzatore. Età, prezzo e iscrizione non sono noti e potrebbe non essere pensata per i più piccoli. Verifica presso l’organizzatore.',
+  allDates: 'Mostra tutte le {n} date', fewerDates: 'Mostra meno',
+  placesPage: { sub: 'Luoghi, centri di quartiere, parchi e punti d’incontro in tutta Zurigo. Le voci «Tramite Chreis+» non sono confermate dagli organizzatori.', search: 'Cerca luoghi …', onlyConfirmed: 'Solo confermati', count: 'Nessun luogo | 1 luogo | {n} luoghi', more: 'Mostra altro', offers: '{n} offerte in elenco', viewOffers: 'Vedi le offerte', viaChreis: 'Tramite Chreis+ · non confermato', all: 'Tutti i luoghi ({n})', none: 'Nessun luogo trovato.' },
+  admin: { promote: 'Segna come confermato', showFeed: 'Voci Chreis+', showDrafts: 'Bozze', showConfirmed: 'Confermati', search: 'Cerca titolo …', limited: 'Sono mostrati i primi {n}. Usa la ricerca per restringere.' },
   profile: { aboutMe: 'Su di me', favourites: 'Preferiti', noFavs: 'Ancora nessun preferito. Tocca il cuore su un’attività.', myPlan: 'I miei appuntamenti', noPlan: 'Ancora nulla nel tuo piano.', change: 'Cambia', remove: 'Rimuovi', logout: 'Esci' },
 }
 const fr: typeof en = {
@@ -90,6 +132,20 @@ const fr: typeof en = {
     mobilePage: 'Lun–Jeu', mobilePage2: 'Ven–Dim', emptyGrid: 'Ajoutez votre premier horaire avec « + Horaire ».', open: 'Ouvrir',
     monthNone: 'Rien de prévu ce mois-ci.', weeklyShort: 'chaque semaine', thisWeek: 'Cette semaine',
   },
+  disc: {
+    scopeAll: 'Tous les événements à Zurich', scopeVerified: 'Confirmés par l’organisateur',
+    when: 'Quand', whenAny: 'À tout moment', whenToday: 'Aujourd’hui', whenWeek: '7 prochains jours', whenMonth: '30 prochains jours',
+    unknownAge: 'Afficher aussi les entrées sans âge indiqué', unknownKreis: 'Afficher aussi les entrées sans arrondissement',
+    hiddenKreis: '{n} entrées sans arrondissement sont masquées.', hiddenAge: '{n} entrées sans âge sont masquées.', showThem: 'Afficher',
+    attribution: 'Les entrées marquées « Via Chreis+ » proviennent des données ouvertes de Chreis+ (CC BY-SA 4.0), sans images ni textes d’origine.',
+    chreisLink: 'chreis.plus',
+  },
+  lastSeen: 'Dernière fois vu dans le répertoire : {date}',
+  tile: { unconfirmed: 'Via Chreis+ · non confirmé', moreDates: '+{n} autres dates', noPlace: 'Lieu non indiqué', source: 'Source', kreisDerived: 'Arrondissement déduit du code postal' },
+  feedInfo: 'Cette entrée provient du répertoire de Chreis+ et n’a pas encore été confirmée par l’organisateur. L’âge, le prix et l’inscription ne sont pas connus, et elle ne s’adresse peut-être pas aux jeunes enfants. Merci de vérifier auprès de l’organisateur.',
+  allDates: 'Afficher les {n} dates', fewerDates: 'Afficher moins',
+  placesPage: { sub: 'Lieux, centres de quartier, parcs et points de rencontre dans tout Zurich. Les entrées « Via Chreis+ » ne sont pas confirmées par les organisateurs.', search: 'Rechercher des lieux …', onlyConfirmed: 'Seulement confirmés', count: 'Aucun lieu | 1 lieu | {n} lieux', more: 'Afficher plus', offers: '{n} offres dans la liste', viewOffers: 'Voir les offres', viaChreis: 'Via Chreis+ · non confirmé', all: 'Tous les lieux ({n})', none: 'Aucun lieu trouvé.' },
+  admin: { promote: 'Marquer comme confirmé', showFeed: 'Entrées Chreis+', showDrafts: 'Brouillons', showConfirmed: 'Confirmés', search: 'Rechercher un titre …', limited: 'Les {n} premiers sont affichés. Utilisez la recherche pour affiner.' },
   profile: { aboutMe: 'À propos de moi', favourites: 'Favoris', noFavs: 'Pas encore de favoris. Touchez le cœur sur une activité.', myPlan: 'Mes rendez-vous', noPlan: 'Rien dans votre plan pour l’instant.', change: 'Modifier', remove: 'Retirer', logout: 'Se déconnecter' },
 }
 export const ui = { de, en, it, fr }

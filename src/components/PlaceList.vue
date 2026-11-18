@@ -1,4 +1,5 @@
 <script setup lang="ts">
+// A few organiser-confirmed places at the bottom of Discover; the full directory lives on /orte.
 import { useCatalogue } from '@/stores/catalogue'
 import { useFormat } from '@/composables/useFormat'
 const cat = useCatalogue()
@@ -19,6 +20,7 @@ const mapUrl = (p: { name: string; address: string | null }) =>
         <a class="small" :href="mapUrl(p)" target="_blank" rel="noopener">{{ $t('ui.places.map') }}</a>
       </li>
     </ul>
+    <div><RouterLink :to="{ name: 'places' }" class="btn">{{ $t('ui.placesPage.all', { n: cat.placeTotal }) }} →</RouterLink></div>
   </section>
 </template>
 <style scoped>

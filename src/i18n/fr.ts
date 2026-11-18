@@ -26,7 +26,7 @@ const fr: typeof en = {
   },
   discover: {
     title: 'Découvrir',
-    sub: 'Activités, lieux de rencontre et offres pour les enfants de 0 à 4 ans à Zurich. Les informations viennent des organisateurs. Merci de vérifier auprès d’eux avant de vous déplacer.',
+    sub: 'Activités, lieux de rencontre et événements à Zurich, avec un accent sur les enfants de 0 à 4 ans. Les informations viennent des organisateurs ou de répertoires publics (signalés). Merci de vérifier auprès de l’organisateur avant de vous déplacer.',
     search: 'Rechercher : nom, lieu, arrondissement …', filters: 'Filtres', clear: 'Effacer les filtres',
     allDays: 'Tous les jours', allKreise: 'Tous les arrondissements', chooseKreis: 'Arrondissement',
     age: 'Âge de l’enfant', ageAny: 'Tout âge', ageMonths: 'Moins d’un an', ageYears: '{n} ans | {n} an | {n} ans',

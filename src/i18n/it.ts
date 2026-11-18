@@ -26,7 +26,7 @@ const it: typeof en = {
   },
   discover: {
     title: 'Scopri',
-    sub: 'Attività, luoghi d’incontro e offerte per bambini da 0 a 4 anni a Zurigo. Le informazioni provengono dagli organizzatori. Verificale con loro prima di andare.',
+    sub: 'Attività, luoghi d’incontro ed eventi a Zurigo, con un’attenzione ai bambini da 0 a 4 anni. Le informazioni provengono dagli organizzatori o da elenchi pubblici (contrassegnati). Verifica presso l’organizzatore prima di andare.',
     search: 'Cerca: nome, luogo, circolo …', filters: 'Filtri', clear: 'Azzera i filtri',
     allDays: 'Tutti i giorni', allKreise: 'Tutti i circoli', chooseKreis: 'Circolo',
     age: 'Età del bambino', ageAny: 'Qualsiasi età', ageMonths: 'Meno di 1 anno', ageYears: '{n} anni | {n} anno | {n} anni',

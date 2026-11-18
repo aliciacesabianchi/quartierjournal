@@ -35,7 +35,11 @@ onMounted(async () => {
 })
 
 const today = todayInZurich()
-const dated = computed(() => a.value?.upcoming.filter((o) => o.date >= today) ?? [])
+const dated = computed(() => a.value?.upcoming.filter((o) => o.date >= today && o.status !== 'cancelled') ?? [])
+const showAllDates = ref(false)
+const datedShown = computed(() => (showAllDates.value ? dated.value : dated.value.slice(0, 8)))
+const fromFeed = computed(() => a.value?.verification !== 'provider_verified')
+const place = computed(() => a.value?.venue_name || a.value?.location_text || '')
 const link = (role: string) => sources.value.filter((s) => s.role === role)
 
 const labels = computed(() => icsLabels(t))
@@ -74,10 +78,12 @@ async function add(item: { template_id?: string; occurrence_id?: string }) {
         <div class="row">
           <span v-if="a.status && a.status !== 'published'" class="badge example">{{ a.status }}</span>
           <span class="badge" :class="a.verification === 'provider_verified' ? 'ok' : 'warn'">{{ $t(`card.verification.${a.verification}`) }}</span>
-          <span class="small muted">{{ a.last_checked_on ? $t('activity.lastChecked', { date: f.date(a.last_checked_on, { day: 'numeric', month: 'long', year: 'numeric' }) }) : $t('activity.neverChecked') }}</span>
+          <span class="small muted">{{ a.last_checked_on ? $t(a.data_origin === 'feed:chreis' ? 'ui.lastSeen' : 'activity.lastChecked', { date: f.date(a.last_checked_on, { day: 'numeric', month: 'long', year: 'numeric' }) }) : $t('activity.neverChecked') }}</span>
         </div>
         <h1 class="title">{{ a.title }}</h1>
-        <p class="lead">{{ a.venue_name }}<template v-if="a.district_number"> · {{ f.kreis(a.district_number) }}</template></p>
+        <p class="lead">{{ place || $t('ui.tile.noPlace') }}<template v-if="a.district_number"> · {{ f.kreis(a.district_number) }}</template></p>
+        <p v-if="a.district_basis === 'postal_code'" class="tiny muted" style="margin: -6px 0 0">{{ $t('ui.tile.kreisDerived') }}</p>
+        <div v-if="fromFeed" class="notice" role="note">{{ $t('ui.feedInfo') }}</div>
 
         <section class="stack">
           <h2 class="h">{{ $t('activity.schedule') }}</h2>
@@ -102,7 +108,7 @@ async function add(item: { template_id?: string; occurrence_id?: string }) {
           <template v-if="dated.length">
             <h3 class="small strong">{{ $t('activity.upcoming') }}</h3>
             <ul class="slots">
-              <li v-for="o in dated" :key="o.id">
+              <li v-for="o in datedShown" :key="o.id">
                 <span><strong>{{ f.date(o.date) }}</strong> · {{ f.time(o.start, o.end) }}</span>
                 <span class="row">
                   <a v-if="gcal({ activity: a, occurrence: o })" :href="gcal({ activity: a, occurrence: o })!" target="_blank" rel="noopener" class="small">{{ $t('activity.googleCal') }}</a>
@@ -113,6 +119,7 @@ async function add(item: { template_id?: string; occurrence_id?: string }) {
               </li>
             </ul>
           </template>
+          <button v-if="dated.length > 8" class="linkbtn small" @click="showAllDates = !showAllDates">{{ showAllDates ? $t('ui.fewerDates') : $t('ui.allDates', { n: dated.length }) }}</button>
           <p v-if="!a.templates.length && !dated.length">{{ $t('card.noUpcoming') }}</p>
           <p v-else-if="!hasTimes" class="small">{{ $t('activity.noTimes') }}</p>
           <div v-if="message" class="notice" :class="message.kind" role="status">{{ message.text }}</div>
@@ -125,7 +132,7 @@ async function add(item: { template_id?: string; occurrence_id?: string }) {
           <dt>{{ $t('activity.price') }}</dt><dd>{{ f.price(a) }}</dd>
           <dt>{{ $t('activity.registration') }}</dt><dd>{{ $t(`card.reg.${a.registration}`) }}<span v-if="a.registration_text && a.registration_text.toLowerCase() !== 'unknown'" class="muted"> ({{ a.registration_text }})</span></dd>
           <template v-if="a.schedule_notes"><dt>{{ $t('activity.notes') }}</dt><dd>{{ a.schedule_notes }}</dd></template>
-          <dt>{{ $t('activity.where') }}</dt><dd>{{ [a.venue_name, a.address, a.quartier, f.kreis(a.district_number)].filter(Boolean).join(', ') }}</dd>
+          <dt>{{ $t('activity.where') }}</dt><dd>{{ [a.venue_name || a.location_text, a.address, a.quartier, f.kreis(a.district_number)].filter(Boolean).join(', ') || $t('ui.tile.noPlace') }}</dd>
         </dl>
         <p class="tiny muted">{{ $t('activity.contentLanguage') }}</p>
 
@@ -133,11 +140,13 @@ async function add(item: { template_id?: string; occurrence_id?: string }) {
           <h2 class="h">{{ $t('activity.sources') }}</h2>
           <ul class="links">
             <li v-for="s in link('organiser')" :key="s.url"><a :href="s.url" target="_blank" rel="noopener">{{ $t('activity.organiserPage') }} ({{ s.host }}) ↗</a></li>
+ <li v-for="s in link('listing')" :key="s.url"><a :href="s.url" target="_blank" rel="noopener">{{ $t('ui.tile.source') }} ({{ s.host }}) ↗</a></li>
             <li v-for="s in link('booking')" :key="s.url"><a :href="s.url" target="_blank" rel="noopener">{{ $t('activity.booking') }} ({{ s.host }}) ↗</a></li>
             <li v-for="s in [...link('evidence'), ...link('discovery')]" :key="s.url" class="small muted">{{ $t('activity.foundVia') }}: <a :href="s.url" target="_blank" rel="noopener">{{ s.host }}</a></li>
           </ul>
         </section>
 
+        <p v-if="a.data_origin === 'feed:chreis'" class="tiny muted">{{ $t('ui.disc.attribution') }} <a href="https://chreis.plus" target="_blank" rel="noopener">{{ $t('ui.disc.chreisLink') }}</a></p>
         <ShareBox :title="a.title" :url="`${appUrl()}/a/${a.id}`" />
       </div>
     </article>

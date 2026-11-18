@@ -53,6 +53,11 @@ export interface ActivityCard {
   upcoming: Occurrence[]
   organiser_url: string | null
   booking_url: string | null
+  // added with the feed data (migration 3)
+  location_text: string | null
+  data_origin: string | null
+  listing_url: string | null
+  district_basis: 'postal_code' | null
 }
 
 export interface CareBlock {

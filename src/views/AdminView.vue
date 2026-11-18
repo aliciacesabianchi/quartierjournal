@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // Admin review. Every action here is also enforced server-side by RLS / app.is_admin().
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { db } from '@/lib/supabase'
 import { useAuth } from '@/stores/auth'
@@ -17,6 +17,9 @@ const tab = ref<Tab>('leads')
 const leads = ref<any[]>([])
 const proposals = ref<any[]>([])
 const drafts = ref<any[]>([])
+const draftFilter = ref<'drafts' | 'feed' | 'confirmed'>('drafts')
+const draftQuery = ref('')
+const DRAFT_LIMIT = 100
 const runs = ref<any[]>([])
 const checks = ref<any[]>([])
 const payloads = ref<Record<string, string>>({})
@@ -25,18 +28,30 @@ const LEAD_STATUSES = ['new', 'matched', 'in_review', 'accepted', 'rejected', 'd
 
 async function load() {
   const s = db()
-  const [l, p, d, r, c] = await Promise.all([
+  const [l, p, r, c] = await Promise.all([
     s.from('leads').select('*').order('created_at', { ascending: false }),
     s.from('proposals').select('*').in('status', ['pending', 'approved']).order('created_at'),
-    s.from('activities').select('id, title, status, verification, last_checked_on, venue_id, venues(name, status)').neq('status', 'archived').order('status').order('title'),
     s.from('refresh_runs').select('*').order('run_date', { ascending: false }).limit(20),
     s.from('source_checks').select('id, checked_on, outcome, note, sources(url)').order('checked_on', { ascending: false, nullsFirst: false }).limit(30),
   ])
-  const err = l.error ?? p.error ?? d.error ?? r.error ?? c.error
+  const err = l.error ?? p.error ?? r.error ?? c.error
   if (err) { msg.value = { kind: 'error', text: err.message }; return }
-  leads.value = l.data!; proposals.value = p.data!; drafts.value = d.data!; runs.value = r.data!; checks.value = c.data!
+  leads.value = l.data!; proposals.value = p.data!; runs.value = r.data!; checks.value = c.data!
+  await loadDrafts()
   payloads.value = Object.fromEntries(p.data!.map((x: any) => [x.id, JSON.stringify(x.payload, null, 2)]))
 }
+async function loadDrafts() {
+  let q = db().from('activities').select('id, title, status, verification, last_checked_on, data_origin, venue_id, venues(name, status)')
+  if (draftFilter.value === 'drafts') q = q.eq('status', 'draft')
+  else if (draftFilter.value === 'feed') q = q.eq('data_origin', 'feed:chreis').eq('status', 'published')
+  else q = q.eq('verification', 'provider_verified').eq('status', 'published')
+  const term = draftQuery.value.trim().replace(/[%,()]/g, ' ')
+  if (term) q = q.ilike('title', `%${term}%`)
+  const { data, error } = await q.order('title').limit(DRAFT_LIMIT)
+  if (error) { msg.value = { kind: 'error', text: error.message }; return }
+  drafts.value = data ?? []
+}
+watch([draftFilter, draftQuery], () => { if (auth.isAdmin) void loadDrafts() })
 onMounted(() => { if (auth.isAdmin) void load() })
 
 async function act(fn: () => PromiseLike<{ error: { message: string } | null }>, ok: string) {
@@ -60,6 +75,14 @@ async function apply(id: string) {
   }, t('admin.applied'))
 }
 const reject = (id: string) => act(() => db().from('proposals').update({ status: 'rejected', reviewed_by: auth.user!.id, reviewed_at: new Date().toISOString() }).eq('id', id), t('admin.rejected'))
+
+/** After checking an entry with the organiser: mark it as confirmed (it then counts as organiser-verified everywhere). */
+const promote = (a: any) => act(async () => {
+  const today = new Date().toISOString().slice(0, 10)
+  const u = await db().from('activities').update({ verification: 'provider_verified', last_checked_on: today }).eq('id', a.id)
+  if (u.error) return u
+  return db().from('verifications').insert({ activity_id: a.id, checked_on: today, method: 'admin', result: 'confirmed with organiser', checked_by: auth.user!.id })
+}, t('common.saved'))
 
 /** Publishing an activity also publishes its venue (otherwise the public card would lose its location). */
 async function setPublished(a: any, publish: boolean) {
@@ -117,6 +140,16 @@ async function setPublished(a: any, publish: boolean) {
       </section>
 
       <section v-if="tab === 'drafts'" class="stack">
+        <div class="row">
+          <select v-model="draftFilter" class="input" style="width: auto" aria-label="filter">
+            <option value="drafts">{{ $t('ui.admin.showDrafts') }}</option>
+            <option value="feed">{{ $t('ui.admin.showFeed') }}</option>
+            <option value="confirmed">{{ $t('ui.admin.showConfirmed') }}</option>
+          </select>
+          <input v-model.trim="draftQuery" type="search" class="input pill" :placeholder="$t('ui.admin.search')" style="flex: 1 1 220px; max-width: 360px" />
+        </div>
+        <p v-if="drafts.length >= DRAFT_LIMIT" class="tiny muted">{{ $t('ui.admin.limited', { n: DRAFT_LIMIT }) }}</p>
+        <p v-if="!drafts.length" class="muted">{{ $t('admin.none') }}</p>
         <table class="tbl">
           <tbody>
             <tr v-for="a in drafts" :key="a.id">
@@ -124,8 +157,11 @@ async function setPublished(a: any, publish: boolean) {
               <td><span class="badge" :class="a.verification === 'provider_verified' ? 'ok' : 'warn'">{{ $t(`card.verification.${a.verification}`) }}</span></td>
               <td class="small">{{ a.last_checked_on ?? '—' }}</td>
               <td>
-                <button v-if="a.status === 'draft'" class="btn small primary" @click="setPublished(a, true)">{{ $t('admin.publish') }}</button>
-                <button v-else class="btn small" @click="setPublished(a, false)">{{ $t('admin.unpublish') }}</button>
+                <span class="row">
+                  <button v-if="a.status === 'draft'" class="btn small primary" @click="setPublished(a, true)">{{ $t('admin.publish') }}</button>
+                  <button v-else class="btn small" @click="setPublished(a, false)">{{ $t('admin.unpublish') }}</button>
+                  <button v-if="a.verification !== 'provider_verified'" class="btn small" @click="promote(a)">{{ $t('ui.admin.promote') }}</button>
+                </span>
               </td>
             </tr>
           </tbody>

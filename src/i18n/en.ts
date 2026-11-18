@@ -24,7 +24,7 @@ export default {
   },
   discover: {
     title: 'Discover',
-    sub: 'Activities, meeting places and offers for children aged 0–4 in Zürich. Details come from the organisers. Please confirm with them before you go.',
+    sub: 'Activities, meeting places and events in Zürich, with a focus on children aged 0–4. Details come from the organisers or from public directories (marked). Please confirm with the organiser before you go.',
     search: 'Search: name, place, Kreis …', filters: 'Filters', clear: 'Clear filters',
     allDays: 'All days', allKreise: 'All Kreise', chooseKreis: 'Kreis',
     age: 'Child’s age', ageAny: 'Any age', ageMonths: 'Under 1 year', ageYears: '{n} years | {n} year | {n} years',

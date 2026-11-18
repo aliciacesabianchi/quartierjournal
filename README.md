@@ -27,4 +27,5 @@ Browser flows (`e2e/`) run against real PostgREST, the real migrations and the r
 ```bash
 python3 -I worker/import_sqlite.py path/to/Quartierjournal.sqlite --sql supabase/seed/catalogue_import.sql --report docs/import-report.md
 ```
-The output is idempotent SQL with provenance (`legacy_ids`). Run it in the Supabase SQL editor.
+The output is idempotent SQL with provenance (`legacy_ids`). For a newer export, add `--base <previously imported file>` so ids stay stable.
+Apply it in chunks: `python3 -I worker/apply_seed.py --psql <url>` (local test) or `SUPABASE_ACCESS_TOKEN=… python3 -I worker/apply_seed.py --api <project-ref>`.
