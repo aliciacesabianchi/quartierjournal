@@ -47,3 +47,9 @@ The photos look like they were taken from the organisers' own websites. The prot
 - Status: `images.licence_status = 'embedded_preview'` = **no explicit licence**. 86 of 873 listings have one (mostly stadt-zuerich.ch, seebach.ch). The Chreis+ licence excludes images.
 - Decision (owner, 2026-11-18): use them for the pilot; ask the providers for permission after the pilot was successful. An admin can set any image to `rejected` and it disappears at once.
 - Privacy: images load with `referrerpolicy="no-referrer"`, but the provider's server still sees the visitor's IP address. Mention in the privacy page before wider launch.
+
+## Illustration photos ("Symbolbild", added 2026-11-18)
+- `public/stock/crafts.webp` (children painting at a table), `movement.webp` (children's yoga), `playground.webp` (wooden playground in autumn). Supplied by the project owner in chat; **photographer, source and licence are not recorded yet.** Two show identifiable children.
+- Used only where an entry has no image of its own, matched by title (`src/domain/stock.ts`), always labelled "Symbolbild / Illustration photo".
+- **Before the official launch:** confirm source and licence (or replace with licensed/own photos), and confirm there are releases for the children shown. To switch all of them off, make `stockFor()` return null.
+- A photo of a café (Fürdich, Schreinerstrasse) was also supplied; not used, because it is a real business and no listing is there.
