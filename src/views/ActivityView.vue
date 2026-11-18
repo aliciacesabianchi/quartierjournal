@@ -23,6 +23,7 @@ const f = useFormat()
 const preview = ref<ActivityCard | null>(null)
 const a = computed(() => cat.byId(props.id) ?? preview.value ?? undefined)
 const sources = ref<{ role: string; url: string; host: string | null }[]>([])
+const imgOk = ref(true)
 const busy = ref<string | null>(null)
 const message = ref<{ kind: 'ok' | 'error'; text: string } | null>(null)
 
@@ -73,7 +74,11 @@ async function add(item: { template_id?: string; occurrence_id?: string }) {
     <p v-else-if="!a" class="notice">{{ $t('activity.notFound') }}</p>
 
     <article v-else class="detail">
-      <div class="hero card"><SceneArt :seed="a.id" :label="$t('card.noImage')" /></div>
+      <div class="hero card">
+        <img v-if="a.image_url && imgOk" :src="a.image_url" alt="" referrerpolicy="no-referrer" class="heroimg" @error="imgOk = false" />
+        <SceneArt v-else :seed="a.id" :label="$t('card.noImage')" />
+        <a v-if="a.image_url && imgOk" :href="a.image_source_url || a.image_url" target="_blank" rel="noopener noreferrer" class="credit">{{ $t('ui.tile.image', { host: a.image_credit || '' }) }}</a>
+      </div>
       <div class="main stack">
         <div class="row">
           <span v-if="a.status && a.status !== 'published'" class="badge example">{{ a.status }}</span>
@@ -82,7 +87,7 @@ async function add(item: { template_id?: string; occurrence_id?: string }) {
         </div>
         <h1 class="title">{{ a.title }}</h1>
         <p class="lead">{{ place || $t('ui.tile.noPlace') }}<template v-if="a.district_number"> · {{ f.kreis(a.district_number) }}</template></p>
-        <p v-if="a.district_basis === 'postal_code'" class="tiny muted" style="margin: -6px 0 0">{{ $t('ui.tile.kreisDerived') }}</p>
+        <p v-if="a.district_basis" class="tiny muted" style="margin: -6px 0 0">{{ $t(a.district_basis === 'postal_code' ? 'ui.tile.kreisDerived' : a.district_basis === 'street' ? 'ui.tile.kreisStreet' : 'ui.tile.kreisArea') }}</p>
         <div v-if="fromFeed" class="notice" role="note">{{ $t('ui.feedInfo') }}</div>
 
         <section class="stack">
@@ -94,6 +99,7 @@ async function add(item: { template_id?: string; occurrence_id?: string }) {
                 <span>
                   <strong>{{ f.day(tp.weekday, 'long') }}</strong> · {{ f.time(tp.start, tp.end) }}
                   <span v-if="tp.recurrence === 'selected_dates'" class="badge warn">{{ $t('week.selected') }}</span>
+                  <span v-if="tp.note" class="small muted"><br />{{ tp.note }}</span>
                 </span>
                 <span class="row">
                   <a v-if="gcal({ activity: a, template: tp })" :href="gcal({ activity: a, template: tp })!" target="_blank" rel="noopener" class="small">{{ $t('activity.googleCal') }}</a>
@@ -155,7 +161,9 @@ async function add(item: { template_id?: string; occurrence_id?: string }) {
 
 <style scoped>
 .detail { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); gap: clamp(20px, 4vw, 48px); align-items: start; }
-.hero { aspect-ratio: 10 / 7; position: sticky; top: 16px; }
+.hero { aspect-ratio: 10 / 7; position: sticky; top: 16px; overflow: hidden; }
+.heroimg { width: 100%; height: 100%; object-fit: cover; display: block; }
+.credit { position: absolute; left: 10px; bottom: 10px; background: rgba(255,255,255,.9); border-radius: var(--pill); padding: 3px 10px; font-size: 12px; color: var(--ink); }
 .title { font-size: clamp(34px, 6vw, 60px); }
 .h { font-size: 24px; font-weight: 400; }
 .strong { font-weight: 500; margin: 0; }

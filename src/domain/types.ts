@@ -57,7 +57,10 @@ export interface ActivityCard {
   location_text: string | null
   data_origin: string | null
   listing_url: string | null
-  district_basis: 'postal_code' | null
+  district_basis: 'postal_code' | 'street' | 'organiser_area' | null
+  image_url: string | null
+  image_credit: string | null
+  image_source_url: string | null
 }
 
 export interface CareBlock {

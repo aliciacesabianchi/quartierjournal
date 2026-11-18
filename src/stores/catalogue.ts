@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase'
 import type { ActivityCard } from '@/domain/types'
 
 export interface District { id: number; number: number; name: string }
-export interface Place { id: string; name: string; kind: string | null; features: string | null; address: string | null; quartier: string | null; district_number: number | null; verification: string; data_origin: string; web_url: string | null; activity_count: number }
+export interface Place { id: string; name: string; kind: string | null; features: string | null; address: string | null; quartier: string | null; district_number: number | null; verification: string; data_origin: string; web_url: string | null; activity_count: number; image_url?: string | null; image_credit?: string | null }
 
 export const useCatalogue = defineStore('catalogue', () => {
   const cards = ref<ActivityCard[]>([])

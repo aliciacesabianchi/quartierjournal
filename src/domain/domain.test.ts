@@ -13,7 +13,7 @@ const card = (over: Partial<ActivityCard> = {}): ActivityCard => ({
   venue_id: 'v1', venue_name: 'GZ Buchegg', venue_kind: 'GZ', address: null, quartier: 'Unterstrass', district_number: 6, city_id: 'zurich',
   templates: [{ id: 't1', weekday: 5, start: '10:00:00', end: '11:30:00', recurrence: 'weekly', note: null }],
   upcoming: [], organiser_url: 'https://gz-zh.ch/gz-buchegg/', booking_url: null,
-  location_text: null, data_origin: 'legacy:sqlite', listing_url: null, district_basis: null, ...over,
+  location_text: null, data_origin: 'legacy:sqlite', listing_url: null, district_basis: null, image_url: null, image_credit: null, image_source_url: null, ...over,
 })
 
 describe('time', () => {

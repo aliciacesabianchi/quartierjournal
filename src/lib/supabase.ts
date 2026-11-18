@@ -15,4 +15,4 @@ export function db(): SupabaseClient {
 }
 
 export const appUrl = () => window.location.origin
-export const contactEmail = (import.meta.env.VITE_CONTACT_EMAIL as string | undefined) || null
+export const contactEmail = (import.meta.env.VITE_CONTACT_EMAIL as string | undefined) || 'cesabianchi.a@gmail.com'

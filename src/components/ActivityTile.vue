@@ -24,6 +24,8 @@ const confirmed = computed(() => props.a.verification === 'provider_verified')
 const moreDates = computed(() => (props.a.templates.length ? 0 : Math.max(0, props.a.upcoming.length - 1)))
 const place = computed(() => props.a.venue_name || props.a.location_text)
 const sourceUrl = computed(() => props.a.organiser_url || props.a.listing_url)
+const imgOk = ref(true)
+const fromChreis = computed(() => props.a.data_origin === 'feed:chreis')
 const fav = computed(() => me.favourites.has(props.a.id))
 const planned = computed(() => me.plan.some((p) => p.activity_id === props.a.id))
 const link = computed(() => `${appUrl()}/a/${props.a.id}`)
@@ -57,9 +59,11 @@ async function share() {
 <template>
   <article class="tile">
     <div class="ph" aria-hidden="false">
-      <span v-if="!confirmed" class="flag">{{ $t('ui.tile.unconfirmed') }}</span>
-      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="1.8"/><path d="M4 18l5-5 4 4 3-3 4 4"/></svg>
-      <span>{{ a.title }}</span>
+      <img v-if="a.image_url && imgOk" :src="a.image_url" alt="" loading="lazy" referrerpolicy="no-referrer" class="pic" @error="imgOk = false" />
+      <span v-if="!confirmed" class="flag">{{ fromChreis ? $t('ui.tile.unconfirmed') : $t('ui.tile.notChecked') }}</span>
+      <span v-if="a.image_url && imgOk" class="credit">{{ $t('ui.tile.image', { host: a.image_credit || '' }) }}</span>
+      <svg v-if="!(a.image_url && imgOk)" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="1.8"/><path d="M4 18l5-5 4 4 3-3 4 4"/></svg>
+      <span v-if="!(a.image_url && imgOk)">{{ a.title }}</span>
       <button
         v-if="auth.loggedIn"
         class="fav"
@@ -99,8 +103,10 @@ async function share() {
 .tile { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 20px; overflow: hidden; background: #fff; }
 .ph { position: relative; height: 170px; background: #e8e6e1; border-bottom: 1px dashed #cfcac2; color: #6b6963; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 0 16px; text-align: center; font-size: 13px; }
 .ph span { overflow-wrap: anywhere; }
-.flag { position: absolute; left: 12px; top: 12px; max-width: calc(100% - 70px); background: #fff; border-radius: var(--pill); padding: 4px 10px; font-size: 12px; color: var(--ink); text-align: left; }
-.fav { position: absolute; right: 12px; top: 12px; width: 38px; height: 38px; border-radius: 50%; border: 0; background: #fff; color: var(--ink); font-size: 19px; cursor: pointer; line-height: 1; }
+.pic { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.credit { position: absolute; left: 8px; bottom: 8px; background: rgba(255,255,255,.88); border-radius: var(--pill); padding: 2px 8px; font-size: 11px; color: var(--ink); }
+.flag { z-index: 1; position: absolute; left: 12px; top: 12px; max-width: calc(100% - 70px); background: #fff; border-radius: var(--pill); padding: 4px 10px; font-size: 12px; color: var(--ink); text-align: left; }
+.fav { z-index: 1; position: absolute; right: 12px; top: 12px; width: 38px; height: 38px; border-radius: 50%; border: 0; background: #fff; color: var(--ink); font-size: 19px; cursor: pointer; line-height: 1; }
 .fav[aria-pressed='true'] { color: var(--magenta-ink); }
 .body { padding: 16px; display: flex; flex-direction: column; gap: 7px; flex: 1; }
 h3 { font-size: 22px; line-height: 1.15; font-weight: 400; }

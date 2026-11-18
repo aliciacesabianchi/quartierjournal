@@ -84,7 +84,7 @@ const mapUrl = (p: Place) => `https://www.openstreetmap.org/search?query=${encod
           <span class="small muted">{{ [p.kind, f.kreis(p.district_number), p.quartier].filter(Boolean).join(' · ') }}</span>
           <span v-if="p.address" class="small">{{ p.address }}</span>
           <span v-if="p.features" class="tiny muted">{{ p.features }}</span>
-          <span v-if="p.verification !== 'provider_verified'" class="badge warn">{{ $t('ui.placesPage.viaChreis') }}</span>
+          <span v-if="p.verification !== 'provider_verified'" class="badge warn">{{ p.data_origin === 'feed:chreis' ? $t('ui.placesPage.viaChreis') : $t('ui.tile.notChecked') }}</span>
           <span class="row small">
             <RouterLink v-if="p.activity_count" :to="{ name: 'discover', query: { q: p.name } }">{{ $t('ui.placesPage.offers', { n: p.activity_count }) }} →</RouterLink>
             <a v-if="p.web_url" :href="p.web_url" target="_blank" rel="noopener">{{ $t('ui.tile.source') }} ↗</a>
