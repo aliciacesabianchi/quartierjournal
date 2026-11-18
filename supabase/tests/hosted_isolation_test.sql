@@ -26,7 +26,7 @@ begin
   exception when insufficient_privilege then res := res || jsonb_build_object('t','anon cannot read children','ok',true); end;
   begin insert into public.leads(url) values ('https://x.example'); res := res || jsonb_build_object('t','anon cannot submit leads','ok',false);
   exception when insufficient_privilege then res := res || jsonb_build_object('t','anon cannot submit leads','ok',true); end;
-  res := res || jsonb_build_object('t','anon sees no images of unknown licence','ok',(select count(*) from public.images)=0);
+  res := res || jsonb_build_object('t','anon sees no images of unknown or rejected licence','ok',(select count(*) from public.images where licence_status in ('unknown','rejected'))=0);
   reset role;
 
   -- user A creates private data

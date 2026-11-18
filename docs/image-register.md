@@ -40,3 +40,10 @@ The photos look like they were taken from the organisers' own websites. The prot
 2. Get written permission from the organiser (an email is enough; keep it), or use your own photo or a clearly licensed one (e.g. CC BY with credit).
 3. Avoid identifiable children unless the organiser confirms consent for this use.
 4. An admin uploads it to Supabase Storage and sets `licence_status = 'permitted'` with `credit` and `source_url`.
+
+## Provider preview images (added 2026-11-18)
+- What: for listings whose provider page offers a preview picture (og:image / twitter:image), the site **links** to that picture on the provider's own server, with credit (the provider's website) and, on the detail page, a link back. Nothing is copied or stored by us.
+- How: `worker/crawl_images.py` (robots.txt respected, 1 request per host every 1.5 s, own user agent) → `worker/images_sql.py` → `supabase/seed/provider_images.sql`. Logos/icons and any picture repeated on 3+ pages are dropped as generic.
+- Status: `images.licence_status = 'embedded_preview'` = **no explicit licence**. 86 of 873 listings have one (mostly stadt-zuerich.ch, seebach.ch). The Chreis+ licence excludes images.
+- Decision (owner, 2026-11-18): use them for the pilot; ask the providers for permission after the pilot was successful. An admin can set any image to `rejected` and it disappears at once.
+- Privacy: images load with `referrerpolicy="no-referrer"`, but the provider's server still sees the visitor's IP address. Mention in the privacy page before wider launch.

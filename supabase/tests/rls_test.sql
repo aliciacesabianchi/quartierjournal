@@ -66,7 +66,7 @@ select set_config('request.jwt.claims', '', false);
 select test.expect((select count(*) from public.activities) = 1, 'anon sees only published activities');
 select test.expect((select count(*) from public.activity_cards) = 1, 'anon activity_cards only published');
 select test.expect((select count(*) from public.schedule_templates) = 1, 'anon sees templates of published only');
-select test.expect((select count(*) from public.images) = 0, 'anon never sees images with unknown licence');
+select test.expect((select count(*) from public.images where licence_status in ('unknown','rejected')) = 0, 'anon never sees images with unknown or rejected licence');
 select test.expect((select count(*) from public.sources) = 1, 'anon sees only sources linked to published rows');
 select test.expect_denied('select count(*) from public.profiles', 'anon cannot read profiles');
 select test.expect_denied('select count(*) from public.children', 'anon cannot read children');
