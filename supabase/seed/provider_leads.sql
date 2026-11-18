@@ -14,3 +14,10 @@ select * from (values
  ('a1000000-0000-5000-8000-00000000000a'::uuid, null, 'Waldspiel Allmend/Brunau', 'Forest playgroup for 2.5 years to Kindergarten, Mondays (registration, quarterly fee). Probably not a drop-in offer; not shown unless open sessions exist.', 'worker', 'rejected')
 ) as v(id, url, name, note, origin, status)
 where not exists (select 1 from public.leads l where l.id = v.id);
+
+-- Added at the owner's request: Instagram account of Little Locals Zurich. Instagram cannot be read automatically (login wall, terms of use):
+-- dates have to come from the organiser's own website/newsletter or be sent by the organiser or the owner.
+insert into public.leads (id, url, name, note, origin, status)
+select 'a1000000-0000-5000-8000-00000000000b'::uuid, 'https://www.instagram.com/littlelocals.zurich/', 'Little Locals Zurich',
+       'Sent by the project owner. Instagram only: find the organiser''s own website or newsletter, or ask them for their programme. Do not scrape Instagram.', 'worker', 'new'
+where not exists (select 1 from public.leads where id = 'a1000000-0000-5000-8000-00000000000b');
