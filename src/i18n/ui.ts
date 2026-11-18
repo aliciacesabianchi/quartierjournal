@@ -5,7 +5,8 @@ const en = {
   places: { title: 'Places in the neighbourhood', sub: 'Places that have offers in the list. Opening times: please check with the organiser.', map: 'Open on map ↗', none: 'No places yet.' },
   moreCount: 'Show more ({n})',
   tileAdd: 'Choose time',
-  about: { pilot: 'This is a pilot with a small group of families in Zürich. Listings come from the organisers: please confirm with them before you go.', who: 'Made for parents, grandparents, nannies and everyone who looks after children aged 0–4.' },
+  madeBy: 'Made by a mother, for other mothers and everyone who looks after a child.',
+  about: { mother: 'Quartierjournal is made by a mother, for other mothers and for everyone who looks after a child: fathers, grandparents, nannies, childminders. Most of the time that is mothers, and it shows in the details of everyday life with a small child: nap times, the weather, the pram, whether you need to register. The site is built around exactly those details, and around what really helps.', pilot: 'This is a pilot with a small group of families in Zürich. Listings come from the organisers: please confirm with them before you go.', who: 'Made for parents, grandparents, nannies and everyone who looks after children aged 0–4.' },
   contact: { write: 'Write an email', soon: 'The contact address will appear here soon.' },
   home: {
     hello: 'Hello {name}', helloNoName: 'Hello', today: 'Today', upcoming: 'Coming up',
@@ -44,7 +45,8 @@ const de: typeof en = {
   places: { title: 'Orte im Quartier', sub: 'Orte, zu denen es Angebote in der Liste gibt. Öffnungszeiten bitte beim Anbieter prüfen.', map: 'Auf der Karte öffnen ↗', none: 'Noch keine Orte.' },
   moreCount: 'Mehr anzeigen ({n})',
   tileAdd: 'Zeit wählen',
-  about: { pilot: 'Das ist ein Pilot mit einer kleinen Gruppe von Familien in Zürich. Die Einträge stammen von den Anbietern: bitte vor dem Besuch dort bestätigen.', who: 'Für Eltern, Grosseltern, Nannys und alle, die Kinder von 0–4 Jahren betreuen.' },
+  madeBy: 'Von einer Mutter für andere Mütter und alle, die ein Kind betreuen.',
+  about: { mother: 'Quartierjournal ist von einer Mutter für andere Mütter gemacht – und für alle, die ein Kind betreuen: Väter, Grosseltern, Nannys, Tageseltern. Meistens sind es Mütter, und das merkt man an den Details im Alltag mit einem kleinen Kind: Schlafenszeiten, Wetter, Kinderwagen, ob man sich anmelden muss. Die Seite ist genau auf diese Details ausgerichtet und auf das, was im Alltag wirklich hilft.', pilot: 'Das ist ein Pilot mit einer kleinen Gruppe von Familien in Zürich. Die Einträge stammen von den Anbietern: bitte vor dem Besuch dort bestätigen.', who: 'Für Eltern, Grosseltern, Nannys und alle, die Kinder von 0–4 Jahren betreuen.' },
   contact: { write: 'E-Mail schreiben', soon: 'Die Kontaktadresse erscheint hier bald.' },
   home: {
     hello: 'Hallo {name}', helloNoName: 'Hallo', today: 'Heute', upcoming: 'Demnächst',
@@ -83,7 +85,8 @@ const it: typeof en = {
   places: { title: 'Luoghi del quartiere', sub: 'Luoghi con offerte nell’elenco. Orari di apertura: verifica presso l’organizzatore.', map: 'Apri sulla mappa ↗', none: 'Ancora nessun luogo.' },
   moreCount: 'Mostra altro ({n})',
   tileAdd: 'Scegli l’orario',
-  about: { pilot: 'Questo è un progetto pilota con un piccolo gruppo di famiglie a Zurigo. Le voci provengono dagli organizzatori: confermale con loro prima di andare.', who: 'Per genitori, nonni, tate e tutti coloro che si occupano di bambini da 0 a 4 anni.' },
+  madeBy: 'Fatto da una mamma, per altre mamme e per chiunque si prenda cura di un bambino.',
+  about: { mother: 'Quartierjournal è fatto da una mamma, per altre mamme e per chiunque si prenda cura di un bambino: papà, nonni, tate, tagesmutter. Di solito sono le mamme, e si vede nei dettagli della vita quotidiana con un bambino piccolo: gli orari del sonnellino, il meteo, il passeggino, se serve iscriversi. Il sito è costruito proprio attorno a questi dettagli e a ciò che aiuta davvero.', pilot: 'Questo è un progetto pilota con un piccolo gruppo di famiglie a Zurigo. Le voci provengono dagli organizzatori: confermale con loro prima di andare.', who: 'Per genitori, nonni, tate e tutti coloro che si occupano di bambini da 0 a 4 anni.' },
   contact: { write: 'Scrivi un’e-mail', soon: 'L’indirizzo di contatto comparirà presto qui.' },
   home: {
     hello: 'Ciao {name}', helloNoName: 'Ciao', today: 'Oggi', upcoming: 'Prossimamente',
@@ -122,7 +125,8 @@ const fr: typeof en = {
   places: { title: 'Lieux du quartier', sub: 'Lieux avec des offres dans la liste. Horaires d’ouverture : à vérifier auprès de l’organisateur.', map: 'Ouvrir sur la carte ↗', none: 'Pas encore de lieux.' },
   moreCount: 'Afficher plus ({n})',
   tileAdd: 'Choisir l’horaire',
-  about: { pilot: 'Ceci est un projet pilote avec un petit groupe de familles à Zurich. Les entrées proviennent des organisateurs : confirmez-les auprès d’eux avant de vous déplacer.', who: 'Pour les parents, grands-parents, nounous et toutes les personnes qui s’occupent d’enfants de 0 à 4 ans.' },
+  madeBy: 'Fait par une maman, pour d’autres mamans et pour toutes les personnes qui s’occupent d’un enfant.',
+  about: { mother: 'Quartierjournal est fait par une maman, pour d’autres mamans et pour toutes les personnes qui s’occupent d’un enfant : papas, grands-parents, nounous, accueillantes familiales. Ce sont le plus souvent des mamans, et cela se voit dans les détails du quotidien avec un tout-petit : les heures de sieste, la météo, la poussette, la nécessité de s’inscrire. Le site est construit autour de ces détails et de ce qui aide vraiment.', pilot: 'Ceci est un projet pilote avec un petit groupe de familles à Zurich. Les entrées proviennent des organisateurs : confirmez-les auprès d’eux avant de vous déplacer.', who: 'Pour les parents, grands-parents, nounous et toutes les personnes qui s’occupent d’enfants de 0 à 4 ans.' },
   contact: { write: 'Écrire un e-mail', soon: 'L’adresse de contact apparaîtra bientôt ici.' },
   home: {
     hello: 'Bonjour {name}', helloNoName: 'Bonjour', today: 'Aujourd’hui', upcoming: 'À venir',

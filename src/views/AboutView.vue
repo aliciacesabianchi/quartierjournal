@@ -7,6 +7,7 @@ const copy = useDesign()
     <h1>{{ copy.story.aboutH }}</h1>
     <p class="lead">{{ copy.story.aboutP }}</p>
     <div class="stack body">
+      <p class="mother">{{ $t('ui.about.mother') }}</p>
       <p>{{ copy.story.ab1 }}</p>
       <p>{{ $t('ui.about.pilot') }}</p>
       <p>{{ copy.story.ab4 }}</p>
@@ -20,5 +21,6 @@ const copy = useDesign()
 <style scoped>
 .narrow { max-width: 780px; }
 h1 { font-size: clamp(38px, 6vw, 68px); line-height: 1.06; }
+.body .mother { font-size: 21px; font-weight: 400; }
 .body p { font-size: 19px; font-weight: 300; margin: 0; }
 </style>
