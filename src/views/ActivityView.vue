@@ -9,7 +9,7 @@ import { useFormat } from '@/composables/useFormat'
 import { buildIcs, googleCalendarUrl, type IcsItem } from '@/domain/ics'
 import { todayInZurich } from '@/domain/time'
 import { downloadIcs, icsLabels } from '@/lib/calendar'
-import { stockFor } from '@/domain/stock'
+import { themeFor } from '@/domain/themes'
 import SceneArt from '@/components/SceneArt.vue'
 import type { ActivityCard } from '@/domain/types'
 import ShareBox from '@/components/ShareBox.vue'
@@ -25,7 +25,7 @@ const preview = ref<ActivityCard | null>(null)
 const a = computed(() => cat.byId(props.id) ?? preview.value ?? undefined)
 const sources = ref<{ role: string; url: string; host: string | null }[]>([])
 const imgOk = ref(true)
-const stock = computed(() => (a.value ? stockFor(a.value) : null))
+const theme = computed(() => (a.value ? themeFor(a.value) : null))
 const busy = ref<string | null>(null)
 const message = ref<{ kind: 'ok' | 'error'; text: string } | null>(null)
 
@@ -78,7 +78,7 @@ async function add(item: { template_id?: string; occurrence_id?: string }) {
     <article v-else class="detail">
       <div class="hero card">
         <img v-if="a.image_url && imgOk" :src="a.image_url" alt="" referrerpolicy="no-referrer" class="heroimg" @error="imgOk = false" />
-        <template v-else-if="stock"><img :src="stock" alt="" class="heroimg" /><span class="credit">{{ $t('ui.tile.stock') }}</span></template>
+        <div v-else-if="theme" class="theme" :style="{ background: theme.bg, color: theme.fg }"><span>{{ $t(`ui.theme.${theme.id}`) }}</span></div>
         <SceneArt v-else :seed="a.id" :label="$t('card.noImage')" />
         <a v-if="a.image_url && imgOk" :href="a.image_source_url || a.image_url" target="_blank" rel="noopener noreferrer" class="credit">{{ $t('ui.tile.image', { host: a.image_credit || '' }) }}</a>
       </div>
@@ -165,6 +165,7 @@ async function add(item: { template_id?: string; occurrence_id?: string }) {
 <style scoped>
 .detail { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); gap: clamp(20px, 4vw, 48px); align-items: start; }
 .hero { aspect-ratio: 10 / 7; position: sticky; top: 16px; overflow: hidden; }
+.theme { height: 100%; display: flex; align-items: flex-end; padding: clamp(14px, 3vw, 28px); font-size: clamp(30px, 5vw, 52px); font-weight: 700; line-height: 1.02; letter-spacing: -.01em; }
 .heroimg { width: 100%; height: 100%; object-fit: cover; display: block; }
 .credit { position: absolute; left: 10px; bottom: 10px; background: rgba(255,255,255,.9); border-radius: var(--pill); padding: 3px 10px; font-size: 12px; color: var(--ink); }
 .title { font-size: clamp(34px, 6vw, 60px); }
