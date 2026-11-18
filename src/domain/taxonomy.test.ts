@@ -18,6 +18,7 @@ describe('taxonomy', () => {
     expect(c('Krabbelgruppe')).toBe('baby/crawling')
     expect(c('Geselliges Quartiermittagessen')).toBe('meetup/lunch')
     expect(c('Bilderbuchkino')).toBe('culture/picturebooks')
+    expect(c('Ryte, ryte Rössli – PBZ Oerlikon', 'culture')).toBe('culture/stories')
   })
   it('does not match inside other words', () => {
     expect(c('Einführungskurs Lasercutter')).toBeNull()
