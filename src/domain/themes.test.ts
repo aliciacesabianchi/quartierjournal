@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { themeFor } from './themes'
+import { categoryOf, themeFor } from './themes'
 const t = (title: string, image_url: string | null = null) => themeFor({ title, image_url })?.id ?? null
 describe('themeFor', () => {
   it('matches titles and never overrides a provider image', () => {
@@ -13,8 +13,16 @@ describe('themeFor', () => {
     expect(t('Babyschwimmen')).toBe('movement')
     expect(t('Kinderzirkus')).toBe('movement')
     expect(t('Mukiturnen')).toBe('movement')
-    expect(t('Jass Turnier')).toBeNull()
+    expect(t('Jass Turnier')).toBe('cafe')
     expect(t('Basteln', 'https://x.ch/a.jpg')).toBeNull()
-    expect(t('Handy- & Laptop-Support')).toBeNull()
+    expect(t('Handy- & Laptop-Support')).toBe('learning')
+    expect(t('Bula, Simo und das Glück')).toBeNull()
+  })
+  it('derives a filter category from the title, and keeps our own category', () => {
+    expect(categoryOf({ title: 'Adventskonzert', category: null })).toBe('music')
+    expect(categoryOf({ title: 'Selbstverteidigungskurs für Mädchen', category: null })).toBe('health')
+    expect(categoryOf({ title: 'Workshop Berufswahl', category: null })).toBe('learning')
+    expect(categoryOf({ title: 'Irgendetwas', category: 'play' })).toBe('play')
+    expect(categoryOf({ title: 'Irgendetwas', category: null })).toBeNull()
   })
 })

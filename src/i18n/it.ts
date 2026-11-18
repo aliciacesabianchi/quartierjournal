@@ -32,7 +32,7 @@ const it: typeof en = {
     age: 'Età del bambino', ageAny: 'Qualsiasi età', ageMonths: 'Meno di 1 anno', ageYears: '{n} anni | {n} anno | {n} anni',
     time: 'Orario', anyTime: 'Qualsiasi orario', am: 'Mattina', pm: 'Pomeriggio',
     category: 'Categoria', allCategories: 'Tutte le categorie',
-    cats: { play: 'Gioco libero', baby: 'Gruppo bebè', playgroup: 'Gruppo gioco', music: 'Musica', movement: 'Movimento e sport', culture: 'Cultura e storie', meetup: 'Incontro per famiglie' },
+    cats: { baby: 'Neonati e piccoli', playgroup: 'Gruppo gioco e nido', play: 'Gioco e parco giochi', music: 'Musica e canto', movement: 'Movimento e sport', creative: 'Lavoretti e creatività', culture: 'Arte, storie e teatro', festive: 'Feste e Avvento', learning: 'Corsi e info', health: 'Salute e consulenza', meetup: 'Caffè e incontri' },
     free: 'Gratis', noReg: 'Senza iscrizione', favs: 'Preferiti', fit: 'Quando ho il mio bambino',
     fitNeedsSchedule: 'Per usare questo filtro, inserisci prima i tuoi orari di accudimento.',
     audience: 'Per chi', audAll: 'Tutte le attività', audCaregiver: 'Per me · con custodia bambini', audChild: 'Per il mio bambino',

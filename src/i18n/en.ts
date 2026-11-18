@@ -30,7 +30,7 @@ export default {
     age: 'Child’s age', ageAny: 'Any age', ageMonths: 'Under 1 year', ageYears: '{n} years | {n} year | {n} years',
     time: 'Time', anyTime: 'Any time', am: 'Morning', pm: 'Afternoon',
     category: 'Category', allCategories: 'All categories',
-    cats: { play: 'Open play', baby: 'Baby group', playgroup: 'Playgroup', music: 'Music', movement: 'Movement & sport', culture: 'Culture & stories', meetup: 'Family meet-up' },
+    cats: { baby: 'Babies & toddlers', playgroup: 'Playgroup & daycare', play: 'Play & playgrounds', music: 'Music & singing', movement: 'Movement & sport', creative: 'Crafts & creative', culture: 'Art, stories & theatre', festive: 'Festivities & Advent', learning: 'Courses & info', health: 'Health & advice', meetup: 'Café & meet-up' },
     free: 'Free', noReg: 'No registration', favs: 'Favourites', fit: 'When I have my child',
     fitNeedsSchedule: 'Add your weekly care schedule first to use this filter.',
     audience: 'For whom', audAll: 'All activities', audCaregiver: 'For me · with childcare', audChild: 'For my child',

@@ -18,7 +18,7 @@ const route = useRoute()
 const router = useRouter()
 const f = useFormat()
 
-const CATEGORIES = ['play', 'baby', 'playgroup', 'music', 'movement', 'culture', 'meetup'] as const
+const CATEGORIES = ['baby', 'playgroup', 'play', 'music', 'movement', 'creative', 'culture', 'festive', 'learning', 'health', 'meetup'] as const
 const AGES = [6, 12, 24, 36, 48, 60] // months; label as "under 1", "1 year", …
 const PAGE = 12
 

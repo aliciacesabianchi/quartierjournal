@@ -1,4 +1,5 @@
 import type { ActivityCard, CareBlock, Weekday } from './types'
+import { categoryOf } from './themes'
 import { addDays, isoWeekday, toMinutes } from './time'
 
 export interface DiscoverFilters {
@@ -91,7 +92,7 @@ export function matches(a: ActivityCard, f: DiscoverFilters, favourites: Set<str
   if (f.districts.length) {
     if (a.district_number == null ? !f.includeUnknownKreis : !f.districts.includes(a.district_number)) return false
   }
-  if (f.category && a.category !== f.category) return false
+  if (f.category && categoryOf(a) !== f.category) return false
   if (f.freeOnly && a.is_free !== true) return false
   if (f.noRegistration && a.registration !== 'not_required') return false
   if (f.forCaregiver === 'caregiver' && a.audience !== 'caregiver_with_childcare') return false

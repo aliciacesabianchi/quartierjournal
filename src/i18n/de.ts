@@ -32,7 +32,7 @@ const de: typeof en = {
     age: 'Alter des Kindes', ageAny: 'Jedes Alter', ageMonths: 'Unter 1 Jahr', ageYears: '{n} Jahre | {n} Jahr | {n} Jahre',
     time: 'Uhrzeit', anyTime: 'Jederzeit', am: 'Vormittag', pm: 'Nachmittag',
     category: 'Kategorie', allCategories: 'Alle Kategorien',
-    cats: { play: 'Offenes Spielen', baby: 'Babygruppe', playgroup: 'Spielgruppe', music: 'Musik', movement: 'Bewegung & Sport', culture: 'Kultur & Geschichten', meetup: 'Familientreff' },
+    cats: { baby: 'Baby & Kleinkind', playgroup: 'Spielgruppe & Kita', play: 'Spielen & Spielplatz', music: 'Musik & Singen', movement: 'Bewegung & Sport', creative: 'Basteln & Kreatives', culture: 'Kunst, Geschichten & Theater', festive: 'Feste & Advent', learning: 'Kurse & Info', health: 'Gesundheit & Beratung', meetup: 'Café & Treff' },
     free: 'Gratis', noReg: 'Ohne Anmeldung', favs: 'Favoriten', fit: 'Wenn ich mein Kind habe',
     fitNeedsSchedule: 'Trag zuerst deine Betreuungszeiten ein, um diesen Filter zu nutzen.',
     audience: 'Für wen', audAll: 'Alle Angebote', audCaregiver: 'Für mich · mit Kinderbetreuung', audChild: 'Für mein Kind',
