@@ -32,7 +32,7 @@ async function fetchPage(from: number) {
   if (s.onlyConfirmed) q = q.eq('verification', 'provider_verified')
   const term = s.q.trim().replace(/[%,()]/g, ' ')
   if (term) q = q.or(`name.ilike.%${term}%,address.ilike.%${term}%,quartier.ilike.%${term}%`)
-  const { data, count, error } = await q.order('activity_count', { ascending: false }).order('name').range(from, from + PAGE - 1)
+  const { data, count, error } = await q.order('info_checked_on', { ascending: false, nullsFirst: false }).order('activity_count', { ascending: false }).order('name').range(from, from + PAGE - 1)
   loading.value = false
   if (error) { failed.value = true; return }
   items.value = from === 0 ? (data as Place[]) : [...items.value, ...(data as Place[])]
@@ -85,6 +85,13 @@ const mapUrl = (p: Place) => `https://www.openstreetmap.org/search?query=${encod
           <span class="small muted">{{ [p.kind, f.kreis(p.district_number), p.quartier].filter(Boolean).join(' · ') }}</span>
           <span v-if="p.address" class="small">{{ p.address }}</span>
           <span v-if="p.features" class="tiny muted">{{ p.features }}</span>
+          <dl v-if="p.opening_hours || p.admission" class="info">
+            <template v-if="p.opening_hours"><dt>{{ $t('ui.placeInfo.hours') }}</dt><dd>{{ p.opening_hours }}</dd></template>
+            <template v-if="p.admission"><dt>{{ $t('ui.placeInfo.admission') }}</dt><dd>{{ p.admission }}</dd></template>
+            <template v-if="p.free_when"><dt>{{ $t('ui.placeInfo.free') }}</dt><dd>{{ p.free_when }}</dd></template>
+            <template v-if="p.visit_tips"><dt>{{ $t('ui.placeInfo.tips') }}</dt><dd>{{ p.visit_tips }}</dd></template>
+          </dl>
+          <span v-if="p.info_checked_on" class="tiny muted">{{ $t('ui.placeInfo.checked', { date: f.date(p.info_checked_on, { day: 'numeric', month: 'long', year: 'numeric' }) }) }}</span>
           <span v-if="p.verification !== 'provider_verified'" class="badge warn">{{ p.data_origin === 'feed:chreis' ? $t('ui.placesPage.viaChreis') : $t('ui.tile.notChecked') }}</span>
           <span class="row small">
             <RouterLink v-if="p.activity_count" :to="{ name: 'discover', query: { q: p.name } }">{{ $t('ui.placesPage.offers', { n: p.activity_count }) }} →</RouterLink>
@@ -104,6 +111,9 @@ const mapUrl = (p: Place) => `https://www.openstreetmap.org/search?query=${encod
 .pimg { width: 100%; height: 130px; object-fit: cover; border-radius: 12px; }
 .grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: 16px; }
 .place { border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px; display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+.info { display: grid; grid-template-columns: 1fr; gap: 2px; margin: 6px 0 2px; font-size: 14px; font-weight: 300; }
+.info dt { font-weight: 500; margin-top: 6px; }
+.info dd { margin: 0; }
 .place strong { font-weight: 400; font-size: 18px; }
 .more { display: flex; justify-content: center; }
 </style>

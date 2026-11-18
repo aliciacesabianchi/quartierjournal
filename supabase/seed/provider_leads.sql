@@ -36,3 +36,10 @@ from (values
  ('a1000000-0000-5000-8000-000000000012', 'https://www.zuerich.com/en/visit/nature/uetliberg-zurichs-very-own-mountain', 'Uetliberg (Spazieren, Natur)')
 ) as v(id, url, name)
 where not exists (select 1 from public.leads l where l.id = v.id::uuid);
+
+-- Tourism-page attractions now added as places (see places_attractions.sql); kinderregion.ch is a directory (its list loads by script and its terms are unclear): lead only.
+update public.leads set status = 'accepted', status_note = 'Added as a place with visit info from the place''s own website (2026-11-18)', checked_on = '2026-11-18'
+ where id in ('a1000000-0000-5000-8000-00000000000c','a1000000-0000-5000-8000-00000000000d','a1000000-0000-5000-8000-00000000000e','a1000000-0000-5000-8000-00000000000f','a1000000-0000-5000-8000-000000000010','a1000000-0000-5000-8000-000000000011');
+insert into public.leads (id, url, name, note, origin, status)
+select 'a1000000-0000-5000-8000-000000000013'::uuid, 'https://kinderregion.ch/en/filter/?view=list&filter%5B%5D=zurich', 'Kinderregion.ch – Zürich (Verzeichnis)', 'Sent by the project owner. Directory of family places/activities; the list is loaded by script. Use it to find providers, then take dates and prices from each provider''s own page. Do not copy the directory.', 'worker', 'new'
+where not exists (select 1 from public.leads where id = 'a1000000-0000-5000-8000-000000000013');
