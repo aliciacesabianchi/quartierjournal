@@ -34,9 +34,9 @@ describe('taxonomy', () => {
     expect(c('Irgendetwas', 'playgroup')).toBe('play/null')
     expect(c('Yoga mit Kinderbetreuung', 'movement')).toBe('movement/yoga')
   })
-  it('tile uses the image first, then main colour with sub label', () => {
+  it('tile uses the provider image first, then the designed tile of the main category', () => {
     expect(tileFor({ title: 'Basteln', category: null, image_url: 'https://x.ch/a.jpg' })).toBeNull()
-    expect(tileFor({ title: 'Basteln', category: null, image_url: null })?.labelKey).toBe('tax.sub.crafts')
+    expect(tileFor({ title: 'Basteln', category: null, image_url: null })?.slug).toBe('basteln-kreatives')
   })
   it('every rule and main has a label in all four languages', () => {
     for (const l of ['de', 'en', 'it', 'fr'] as const) {

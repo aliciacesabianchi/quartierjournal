@@ -12,7 +12,7 @@ import { todayInZurich } from '@/domain/time'
 import { tileFor } from '@/domain/taxonomy'
 
 const props = defineProps<{ a: ActivityCard }>()
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const f = useFormat()
 const auth = useAuth()
 const me = useMe()
@@ -62,7 +62,7 @@ async function share() {
   <article class="tile">
     <div class="ph" aria-hidden="false">
       <img v-if="a.image_url && imgOk" :src="a.image_url" alt="" loading="lazy" referrerpolicy="no-referrer" class="pic" @error="imgOk = false" />
-      <div v-else-if="theme" class="theme" :style="{ background: theme.bg, color: theme.fg }"><span>{{ $t(theme.labelKey) }}</span></div>
+      <img v-else-if="theme" :src="`/labels/${locale}/${theme.slug}.webp`" :alt="$t(theme.labelKey)" loading="lazy" class="pic" />
       <span v-if="!confirmed" class="flag">{{ fromChreis ? $t('ui.tile.unconfirmed') : $t('ui.tile.notChecked') }}</span>
       <span v-if="a.image_url && imgOk" class="credit">{{ $t('ui.tile.image', { host: a.image_credit || '' }) }}</span>
       <svg v-if="!(a.image_url && imgOk) && !theme" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="1.8"/><path d="M4 18l5-5 4 4 3-3 4 4"/></svg>
@@ -108,8 +108,6 @@ async function share() {
 .ph span { overflow-wrap: anywhere; }
 .pic { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .credit { position: absolute; left: 8px; bottom: 8px; background: rgba(255,255,255,.88); border-radius: var(--pill); padding: 2px 8px; font-size: 11px; color: var(--ink); }
-.theme { position: absolute; inset: 0; display: flex; align-items: flex-end; padding: 14px 16px; text-align: left; font-size: 28px; font-weight: 700; line-height: 1.02; letter-spacing: -.01em; }
-.theme span { overflow-wrap: anywhere; }
 .flag { z-index: 1; position: absolute; left: 12px; top: 12px; max-width: calc(100% - 70px); background: #fff; border-radius: var(--pill); padding: 4px 10px; font-size: 12px; color: var(--ink); text-align: left; }
 .fav { z-index: 1; position: absolute; right: 12px; top: 12px; width: 38px; height: 38px; border-radius: 50%; border: 0; background: #fff; color: var(--ink); font-size: 19px; cursor: pointer; line-height: 1; }
 .fav[aria-pressed='true'] { color: var(--magenta-ink); }

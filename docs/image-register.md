@@ -48,7 +48,7 @@ The photos look like they were taken from the organisers' own websites. The prot
 - Decision (owner, 2026-11-18): use them for the pilot; ask the providers for permission after the pilot was successful. An admin can set any image to `rejected` and it disappears at once.
 - Privacy: images load with `referrerpolicy="no-referrer"`, but the provider's server still sees the visitor's IP address. Mention in the privacy page before wider launch.
 
-## Theme tiles (replace the stock photos, 2026-11-18)
-- Entries without a provider image show a flat colour tile with a short translated label (Konzerte, Singen, Musik, Basteln, Bewegung & Sport, Spielplatz, Spielen, Geschichten & Theater, Feste & Advent, Café & Treff), matched on the title (`src/domain/themes.ts`). No photos, so no licence or children's-faces issue. Entries that match no theme keep the neutral placeholder.
-- The three stock photos supplied earlier were removed again.
+## Category tiles (the owner's label set, 2026-11-18)
+- Entries without a provider image show the designed tile of their main category: 11 tiles × 4 languages, supplied by the project owner as SVG/PNG (`Quartierjournal-all-labels-DE-EN-FR-IT.zip`), stored as `public/labels/<lang>/<slug>.webp`. Their wording is also used for the main category labels (`src/i18n/taxonomy.ts`). Flat colour and text only: no photos, no licence issue.
+- Entries that match no category keep the neutral placeholder. The earlier stock photos were removed.
 - The café photo (`public/stock/cafe-fuerdich.webp`, Guesthouse & Kafi Fürdich) is used for that place only (Orte), added at the owner's request via `supabase/seed/owner_places.sql`. Source/licence of the photo to be confirmed; ideally ask the café.
