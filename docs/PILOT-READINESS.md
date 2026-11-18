@@ -2,6 +2,14 @@
 
 Status on 2026-11-18. ✅ done and verified · 🟡 needs the Supabase token (I do it) · 🔴 needs you (account or decision).
 
+## Verified on the live site (https://quartierjournal.pages.dev, 2026-11-18)
+- ✅ Deployed build includes the redesign (How it works, About, Contact, Week, Profile pages and routes).
+- ✅ The site is wired to the right Supabase project and contains only the public key (no service/secret key). Google login button is correctly off.
+- ✅ Tested exactly as a visitor's browser would, with the public key: 10 published activities and 8 venues readable, 0 drafts visible, and every private or admin table (profiles, children, care blocks, plan, favourites, leads, source checks, proposals, crawl targets) refused. Anonymous insert of a lead and the delete-account function are refused.
+- ✅ Public auth settings: signups open, email confirmation required.
+- 🔴 `VITE_CONTACT_EMAIL` is not set in Cloudflare: the Contact page and footer show no email address yet.
+- 🟡 Not visible from outside (needs the Supabase token): site URL, redirect allow-list, SMTP, password length, email templates.
+
 ## Accounts, signup, login
 - ✅ Email + password signup with email confirmation, login, logout, password reset (code reviewed; browser tests with a stand-in login service pass).
 - ✅ Expired or cross-device confirmation links now explain themselves on the login page.
