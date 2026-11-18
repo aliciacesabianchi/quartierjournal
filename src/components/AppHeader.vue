@@ -34,7 +34,7 @@ async function logout() {
       <nav aria-label="Main" class="nv">
         <RouterLink :to="{ name: 'discover' }">{{ $t('nav.discover') }}</RouterLink>
         <RouterLink v-if="auth.loggedIn" :to="{ name: 'week' }">{{ $t('nav.week') }}</RouterLink>
-        <RouterLink :to="{ name: 'suggest' }">{{ $t('nav.suggest') }}</RouterLink>
+        <RouterLink v-else :to="{ name: 'how' }">{{ $t('nav.how') }}</RouterLink>
       </nav>
       <div class="tools">
         <label class="sr-only" for="lang">{{ $t('nav.language') }}</label>
@@ -50,6 +50,8 @@ async function logout() {
           <div v-if="menuOpen" class="menu" role="menu" @click="menuOpen = false">
             <RouterLink role="menuitem" :to="{ name: 'week' }">{{ $t('nav.week') }}</RouterLink>
             <RouterLink role="menuitem" :to="{ name: 'profile' }">{{ $t('nav.profile') }}</RouterLink>
+            <RouterLink role="menuitem" :to="{ name: 'suggest' }">{{ $t('nav.suggest') }}</RouterLink>
+            <RouterLink role="menuitem" :to="{ name: 'how' }">{{ $t('nav.how') }}</RouterLink>
             <RouterLink v-if="auth.isAdmin" role="menuitem" :to="{ name: 'admin' }">{{ $t('nav.admin') }}</RouterLink>
             <button role="menuitem" @click.stop="logout">{{ $t('nav.logout') }}</button>
           </div>
@@ -64,9 +66,9 @@ async function logout() {
 .brand { display: flex; flex-direction: column; text-decoration: none; line-height: 1.1; }
 .name { font-weight: 300; font-size: clamp(21px, 5.6vw, 30px); letter-spacing: -0.02em; }
 .city { color: var(--magenta-ink); font-size: 15px; }
-.nv { display: flex; gap: 2px 6px; flex-wrap: wrap; order: 2; }
-.nv a { padding: 8px 12px; text-decoration: none; border-radius: var(--pill); }
-.nv a.router-link-active { background: var(--sand); }
+.nv { display: flex; gap: 2px 6px; flex-wrap: wrap; order: 2; flex: 1; justify-content: center; }
+.nv a { padding: 8px 14px; text-decoration: none; position: relative; }
+.nv a.router-link-active::after { content: ''; position: absolute; left: 14px; right: 14px; bottom: 2px; height: 2px; background: var(--magenta); border-radius: 2px; }
 .tools { display: flex; align-items: center; gap: 6px; position: relative; order: 3; }
 .lang { border: 0; background: transparent; padding: 8px 6px; cursor: pointer; min-height: 40px; }
 .acct { position: relative; }

@@ -98,6 +98,10 @@ export const useMe = defineStore('me', () => {
   async function addBlock(b: { caregiver_id: string; weekday: Weekday; start_time: string; end_time: string }) {
     blocks.value.push(check(await db().from('care_blocks').insert(b).select('id, caregiver_id, weekday, start_time, end_time').single()))
   }
+  async function updateBlock(id: string, patch: { caregiver_id?: string; weekday?: Weekday; start_time?: string; end_time?: string }) {
+    const row = check(await db().from('care_blocks').update(patch).eq('id', id).select('id, caregiver_id, weekday, start_time, end_time').single())
+    blocks.value = blocks.value.map((b) => (b.id === id ? row : b))
+  }
   async function removeBlock(id: string) {
     check(await db().from('care_blocks').delete().eq('id', id))
     blocks.value = blocks.value.filter((b) => b.id !== id)
@@ -133,7 +137,7 @@ export const useMe = defineStore('me', () => {
   return {
     profile, children, caregivers, blocks, plan, favourites, leads, loaded, selfIds,
     load, reset, updateProfile, addChild, removeChild, addCaregiver, updateCaregiver, removeCaregiver,
-    addBlock, removeBlock, addToPlan, removeFromPlan, inPlan, toggleFavourite, submitLead,
+    addBlock, updateBlock, removeBlock, addToPlan, removeFromPlan, inPlan, toggleFavourite, submitLead,
   }
 })
 

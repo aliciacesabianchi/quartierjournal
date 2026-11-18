@@ -3,6 +3,7 @@ import en from './en'
 import de from './de'
 import it from './it'
 import fr from './fr'
+import { ui } from './ui'
 
 export const LOCALES = ['de', 'en', 'it', 'fr'] as const
 export type Locale = (typeof LOCALES)[number]
@@ -25,7 +26,7 @@ export const i18n = createI18n({
   legacy: false,
   locale: initialLocale(),
   fallbackLocale: 'de',
-  messages: { de, en, it, fr },
+  messages: { de: { ...de, ui: ui.de }, en: { ...en, ui: ui.en }, it: { ...it, ui: ui.it }, fr: { ...fr, ui: ui.fr } },
 })
 
 export function setLocale(l: Locale) {

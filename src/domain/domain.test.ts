@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { ActivityCard } from './types'
 import { ageMatches, emptyFilters, fitsFreeTime, matches } from './filters'
 import { buildIcs, fold, escapeText, googleCalendarUrl } from './ics'
-import { isoWeekday, nextDateForWeekday, todayInZurich, weekdayName, ageInMonths } from './time'
+import { addDays, isoWeekday, nextDateForWeekday, todayInZurich, weekdayName, ageInMonths } from './time'
 import { normaliseUrl, whatsappUrl } from './share'
 
 const card = (over: Partial<ActivityCard> = {}): ActivityCard => ({
@@ -30,6 +30,12 @@ describe('time', () => {
     expect(weekdayName(3, 'fr')).toBe('mercredi')
     expect(weekdayName(4, 'it')).toBe('giovedì')
     expect(weekdayName(7, 'en')).toBe('Sunday')
+  })
+  it('adds days across month and year ends and across the DST change', () => {
+    expect(addDays('2026-11-30', 1)).toBe('2026-12-01')
+    expect(addDays('2026-12-31', 1)).toBe('2027-01-01')
+    expect(addDays('2027-03-27', 1)).toBe('2027-03-28') // Zürich switches to summer time on this night
+    expect(addDays('2026-11-18', -7)).toBe('2026-11-11')
   })
   it('computes age in months', () => {
     expect(ageInMonths(2024, 3, '2026-11-09')).toBe(32)

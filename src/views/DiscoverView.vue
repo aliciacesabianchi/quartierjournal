@@ -8,6 +8,7 @@ import { emptyFilters, fitsFreeTime, matches, sortCards, type DiscoverFilters } 
 import type { Weekday } from '@/domain/types'
 import { useFormat } from '@/composables/useFormat'
 import ActivityTile from '@/components/ActivityTile.vue'
+import PlaceList from '@/components/PlaceList.vue'
 
 const cat = useCatalogue()
 const auth = useAuth()
@@ -100,8 +101,7 @@ const ageLabel = (m: number) => (m < 12 ? 'discover.ageMonths' : null)
       </button>
     </div>
 
-    <div class="chips" role="group" :aria-label="$t('activity.schedule')">
-      <button class="chip" :aria-pressed="s.weekday === null" @click="s.weekday = null">{{ $t('discover.allDays') }}</button>
+    <div class="chips days" role="group" :aria-label="$t('activity.schedule')">
       <button v-for="d in [1, 2, 3, 4, 5, 6, 7] as Weekday[]" :key="d" class="chip" :aria-pressed="s.weekday === d" @click="s.weekday = s.weekday === d ? null : d">
         {{ f.day(d) }}
       </button>
@@ -169,7 +169,8 @@ const ageLabel = (m: number) => (m < 12 ? 'discover.ageMonths' : null)
         <ActivityTile v-for="a in results.slice(0, limit)" :key="a.id" :a="a" />
       </div>
       <p v-if="!results.length">{{ $t('discover.none') }}</p>
-      <div v-if="results.length > limit"><button class="btn accent" @click="limit += PAGE">{{ $t('discover.showMore') }}</button></div>
+      <div v-if="results.length > limit" class="more"><button class="btn" @click="limit += PAGE">{{ $t('ui.moreCount', { n: results.length - limit }) }}</button></div>
+      <PlaceList />
       <p class="tiny muted">{{ $t('discover.attribution') }}</p>
     </template>
   </main>
@@ -180,4 +181,6 @@ const ageLabel = (m: number) => (m < 12 ? 'discover.ageMonths' : null)
 .filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 12px; }
 fieldset { border: 0; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
 .chip:disabled { opacity: .5; cursor: not-allowed; }
+.days .chip { min-width: 58px; }
+.more { display: flex; justify-content: center; }
 </style>

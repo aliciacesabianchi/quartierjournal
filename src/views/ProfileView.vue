@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { useMe } from '@/stores/me'
 import { useAuth } from '@/stores/auth'
 import { useCatalogue } from '@/stores/catalogue'
+import { useFormat } from '@/composables/useFormat'
 import { db } from '@/lib/supabase'
 import { ageInMonths, todayInZurich } from '@/domain/time'
 import { LOCALES, LOCALE_LABELS, setLocale, type Locale } from '@/i18n'
@@ -13,6 +14,7 @@ const { t } = useI18n()
 const me = useMe()
 const auth = useAuth()
 const cat = useCatalogue()
+const f = useFormat()
 const router = useRouter()
 cat.load()
 
@@ -45,8 +47,23 @@ function ageLabel(y: number | null, m: number | null) {
   const mo = ageInMonths(y, m, todayInZurich())
   return mo < 24 ? t('common.months', { n: mo }) : t('common.years', { n: Math.floor(mo / 12) })
 }
-const monthName = (m: number) => new Intl.DateTimeFormat(form.locale, { month: 'long' }).format(new Date(2024, m - 1, 1))
+const monthName = (m: number) => new Intl.DateTimeFormat(f.intl(), { month: 'long' }).format(new Date(2024, m - 1, 1))
 
+// summary line under the name, e.g. "Zürich · Kreis 5 · Lea"
+const kreisNumber = computed(() => cat.districts.find((d) => d.id === me.profile?.home_district_id)?.number ?? null)
+const summary = computed(() => ['Zürich', kreisNumber.value ? f.kreis(kreisNumber.value) : '', ...me.children.map((c) => c.nickname).filter(Boolean)].filter(Boolean).join(' · '))
+const initial = computed(() => (me.profile?.display_name || auth.user?.email || '?').trim().charAt(0).toUpperCase())
+
+const favCards = computed(() => cat.cards.filter((c) => me.favourites.has(c.id)))
+const planRows = computed(() => me.plan.map((p) => {
+  const a = cat.byId(p.activity_id)
+  const tp = a?.templates.find((x) => x.id === p.template_id)
+  const oc = a?.upcoming.find((x) => x.id === p.occurrence_id)
+  const when = tp ? `${f.day(tp.weekday, 'long')} ${f.time(tp.start, tp.end)}` : oc ? `${f.date(oc.date)} ${f.time(oc.start, oc.end)}` : ''
+  return { p, a, when }
+}))
+
+async function logout() { await auth.logout(); router.push({ name: 'home' }) }
 const deleting = ref(false)
 async function deleteAccount() {
   if (!window.confirm(t('profile.deleteConfirm'))) return
@@ -61,61 +78,102 @@ async function deleteAccount() {
 </script>
 
 <template>
-  <main id="main" class="wrap" style="max-width: 760px">
-    <h1 style="font-size: clamp(36px, 7vw, 64px)">{{ $t('profile.title') }}</h1>
+  <main id="main" class="wrap prof">
     <p v-if="!me.loaded">{{ $t('common.loading') }}</p>
     <template v-else>
-      <form class="panel stack" @submit.prevent="save">
-        <label class="field"><span>{{ $t('profile.displayName') }}</span><input v-model="form.display_name" class="input" maxlength="80" autocomplete="given-name" /></label>
-        <label class="field"><span>{{ $t('profile.homeKreis') }}</span>
-          <select v-model="form.home_district_id" class="input">
-            <option :value="null">{{ $t('profile.noKreis') }}</option>
-            <option v-for="d in cat.districts" :key="d.id" :value="d.id">{{ $t('common.kreis', { n: d.number }) }}</option>
-          </select>
-        </label>
-        <label class="field"><span>{{ $t('profile.language') }}</span>
-          <select v-model="form.locale" class="input"><option v-for="l in LOCALES" :key="l" :value="l">{{ LOCALE_LABELS[l] }}</option></select>
-        </label>
-        <div v-if="msg" class="notice" :class="msg.kind" role="status">{{ msg.text }}</div>
-        <div><button class="btn primary">{{ $t('common.save') }}</button></div>
-      </form>
+      <header class="who">
+        <span class="avatar" aria-hidden="true">{{ initial }}</span>
+        <div>
+          <h1>{{ me.profile?.display_name || $t('profile.title') }}</h1>
+          <p class="lead">{{ summary }}</p>
+        </div>
+      </header>
 
-      <section class="panel stack">
-        <h2 class="h">{{ $t('profile.children') }}</h2>
-        <p class="small muted" style="margin: 0">{{ $t('profile.childrenNote') }}</p>
-        <p v-if="!me.children.length" class="muted">{{ $t('profile.noChildren') }}</p>
-        <ul class="kids">
-          <li v-for="c in me.children" :key="c.id">
-            <span>{{ c.nickname || '—' }} · {{ c.birth_month && monthName(c.birth_month) }} {{ c.birth_year }} <span class="muted">({{ $t('profile.ageNow', { age: ageLabel(c.birth_year, c.birth_month) }) }})</span></span>
-            <button class="btn small" @click="me.removeChild(c.id)">{{ $t('common.delete') }}</button>
-          </li>
-        </ul>
-        <form class="kidform" @submit.prevent="addChild">
-          <label class="field"><span>{{ $t('profile.childNickname') }}</span><input v-model="child.nickname" class="input" maxlength="40" /></label>
-          <fieldset class="field"><legend style="font-weight: 500">{{ $t('profile.birth') }}</legend>
-            <div class="row" style="flex-wrap: nowrap">
-              <select v-model.number="child.birth_month" class="input" :aria-label="$t('profile.birth')"><option v-for="m in 12" :key="m" :value="m">{{ monthName(m) }}</option></select>
-              <select v-model.number="child.birth_year" class="input" :aria-label="$t('profile.birth')"><option v-for="y in YEARS" :key="y" :value="y">{{ y }}</option></select>
-            </div>
-          </fieldset>
-          <button class="btn">{{ $t('profile.addChild') }}</button>
+      <div class="cards">
+        <form class="card" @submit.prevent="save">
+          <h2>{{ $t('ui.profile.aboutMe') }}</h2>
+          <label class="field"><span>{{ $t('profile.displayName') }}</span><input v-model="form.display_name" class="input pill" maxlength="80" autocomplete="given-name" /></label>
+          <label class="field"><span>{{ $t('profile.email') }}</span><input :value="auth.user?.email" class="input pill" readonly /></label>
+          <label class="field"><span>{{ $t('profile.homeKreis') }}</span>
+            <select v-model="form.home_district_id" class="input pill">
+              <option :value="null">{{ $t('profile.noKreis') }}</option>
+              <option v-for="d in cat.districts" :key="d.id" :value="d.id">{{ $t('common.kreis', { n: d.number }) }}</option>
+            </select>
+          </label>
+          <label class="field"><span>{{ $t('profile.language') }}</span>
+            <select v-model="form.locale" class="input pill"><option v-for="l in LOCALES" :key="l" :value="l">{{ LOCALE_LABELS[l] }}</option></select>
+          </label>
+          <div v-if="msg" class="notice" :class="msg.kind" role="status">{{ msg.text }}</div>
+          <div><button class="btn primary">{{ $t('common.save') }}</button></div>
         </form>
-        <div v-if="childErr" class="notice error">{{ childErr }}</div>
-      </section>
 
-      <section class="panel stack">
-        <h2 class="h">{{ $t('profile.account') }}</h2>
-        <p style="margin: 0"><span class="muted">{{ $t('profile.email') }}:</span> {{ auth.user?.email }}</p>
-        <div><button class="btn" style="border-color: var(--danger); color: var(--danger)" :disabled="deleting" @click="deleteAccount">{{ $t('profile.deleteAccount') }}</button></div>
-      </section>
+        <section class="card">
+          <h2>{{ $t('profile.children') }}</h2>
+          <p v-if="!me.children.length" class="muted small" style="margin: 0">{{ $t('profile.noChildren') }}</p>
+          <ul class="list">
+            <li v-for="c in me.children" :key="c.id">
+              <span>{{ c.nickname || '—' }} · {{ c.birth_month && monthName(c.birth_month) }} {{ c.birth_year }} <span class="muted">({{ $t('profile.ageNow', { age: ageLabel(c.birth_year, c.birth_month) }) }})</span></span>
+              <button class="btn small" @click="me.removeChild(c.id)">{{ $t('common.delete') }}</button>
+            </li>
+          </ul>
+          <form class="kidform" @submit.prevent="addChild">
+            <label class="field"><span>{{ $t('profile.childNickname') }}</span><input v-model="child.nickname" class="input pill" maxlength="40" /></label>
+            <fieldset class="field"><legend>{{ $t('profile.birth') }}</legend>
+              <div class="row" style="flex-wrap: nowrap">
+                <select v-model.number="child.birth_month" class="input pill" :aria-label="$t('profile.birth')"><option v-for="m in 12" :key="m" :value="m">{{ monthName(m) }}</option></select>
+                <select v-model.number="child.birth_year" class="input pill" :aria-label="$t('profile.birth')"><option v-for="y in YEARS" :key="y" :value="y">{{ y }}</option></select>
+              </div>
+            </fieldset>
+            <div><button class="btn small">{{ $t('profile.addChild') }}</button></div>
+          </form>
+          <p class="tiny muted" style="margin: 0">{{ $t('profile.childrenNote') }}</p>
+          <div v-if="childErr" class="notice error">{{ childErr }}</div>
+        </section>
+
+        <section class="card">
+          <h2>♥ {{ $t('ui.profile.favourites') }}</h2>
+          <p v-if="!favCards.length" class="muted small" style="margin: 0">{{ $t('ui.profile.noFavs') }}</p>
+          <ul class="list">
+            <li v-for="a in favCards" :key="a.id">
+              <RouterLink :to="{ name: 'activity', params: { id: a.id } }">{{ a.title }}</RouterLink>
+              <button class="btn small" @click="me.toggleFavourite(a.id)">{{ $t('ui.profile.remove') }}</button>
+            </li>
+          </ul>
+        </section>
+
+        <section class="card">
+          <h2>{{ $t('ui.profile.myPlan') }}</h2>
+          <p v-if="!planRows.length" class="muted small" style="margin: 0">{{ $t('ui.profile.noPlan') }}</p>
+          <ul class="list">
+            <li v-for="r in planRows" :key="r.p.id">
+              <span class="stack" style="gap: 0"><RouterLink v-if="r.a" :to="{ name: 'activity', params: { id: r.a.id } }">{{ r.a.title }}</RouterLink><span class="small muted">{{ r.when }}<template v-if="r.a?.venue_name"> · {{ r.a.venue_name }}</template></span></span>
+              <button class="btn small" @click="me.removeFromPlan(r.p.id)">{{ $t('ui.profile.remove') }}</button>
+            </li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="row">
+        <button class="btn" @click="logout">{{ $t('ui.profile.logout') }}</button>
+        <button class="btn" style="border-color: var(--danger); color: var(--danger)" :disabled="deleting" @click="deleteAccount">{{ $t('profile.deleteAccount') }}</button>
+      </div>
     </template>
   </main>
 </template>
 
 <style scoped>
-.h { font-size: 26px; font-weight: 400; }
-.kids { list-style: none; padding: 0; margin: 0; }
-.kids li { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
-.kidform { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 12px; align-items: end; }
+.prof { max-width: 1000px; }
+.who { display: flex; gap: 20px; align-items: center; }
+.avatar { flex: none; width: 84px; height: 84px; border-radius: 50%; background: #fdf1e3; border: 1px solid var(--ink); display: grid; place-items: center; font-size: 34px; font-weight: 300; }
+h1 { font-size: clamp(40px, 7vw, 72px); }
+.lead { margin-top: 4px; font-size: 18px; }
+.cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; align-items: start; }
+.card { border: 1px solid var(--ink); border-radius: 24px; padding: 24px; display: flex; flex-direction: column; gap: 14px; background: #fff; }
+.card h2 { font-size: 26px; font-weight: 300; }
+.list { list-style: none; margin: 0; padding: 0; }
+.list li { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.kidform { display: grid; gap: 12px; }
 fieldset { border: 0; padding: 0; margin: 0; }
+legend { font-weight: 500; font-size: 14px; margin-bottom: 6px; }
+@media (max-width: 800px) { .cards { grid-template-columns: 1fr; } .avatar { width: 64px; height: 64px; font-size: 26px; } }
 </style>

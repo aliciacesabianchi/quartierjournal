@@ -47,3 +47,10 @@ export function ageInMonths(birthYear: number, birthMonth: number, on: string): 
   const [y, m] = on.split('-').map(Number) as [number, number]
   return (y - birthYear) * 12 + (m - birthMonth)
 }
+
+/** YYYY-MM-DD plus n days (calendar arithmetic, no time-zone surprises). */
+export function addDays(date: string, n: number): string {
+  const d = new Date(date + 'T12:00:00Z')
+  d.setUTCDate(d.getUTCDate() + n)
+  return d.toISOString().slice(0, 10)
+}

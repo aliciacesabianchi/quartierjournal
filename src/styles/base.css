@@ -38,6 +38,8 @@ main.wrap { padding-top: 32px; padding-bottom: 64px; display: flex; flex-directi
 
 h1, h2, h3 { font-weight: 300; letter-spacing: -0.02em; margin: 0; text-wrap: balance; }
 h1 { font-size: clamp(40px, 8vw, 88px); line-height: 1; letter-spacing: -0.03em; }
+h1, h2, h3 { font-weight: 300; }
+h3 { font-weight: 400; }
 h2 { font-size: clamp(26px, 4vw, 40px); line-height: 1.1; }
 h3 { font-size: 22px; line-height: 1.2; font-weight: 400; }
 .lead { font-weight: 300; font-size: 18px; margin: 0; max-width: 70ch; }
@@ -64,7 +66,7 @@ h3 { font-size: 22px; line-height: 1.2; font-weight: 400; }
 
 .chips { display: flex; gap: 8px; flex-wrap: wrap; }
 .chip { padding: 8px 16px; min-height: 40px; border-radius: var(--pill); border: 1px solid var(--ink); background: var(--paper); cursor: pointer; font-size: 15px; }
-.chip[aria-pressed='true'] { background: var(--ink); color: #fff; }
+.chip[aria-pressed='true'] { background: var(--yellow); border-color: var(--ink); }
 
 .field { display: flex; flex-direction: column; gap: 6px; font-size: 14px; }
 .field > span { font-weight: 500; }

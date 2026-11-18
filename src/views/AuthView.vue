@@ -104,19 +104,19 @@ async function googleLogin() {
     <div v-if="!supabase" class="notice error">{{ $t('config.missing') }}</div>
     <form class="stack" @submit.prevent="submit">
       <label class="field"><span>{{ $t('auth.email') }}</span>
-        <input v-model.trim="email" class="input" type="email" autocomplete="email" required />
+        <input v-model.trim="email" class="input pill" type="email" autocomplete="email" required />
       </label>
       <label v-if="mode !== 'reset'" class="field"><span>{{ $t('auth.password') }}</span>
-        <input v-model="password" class="input" type="password" :autocomplete="mode === 'signup' ? 'new-password' : 'current-password'" :minlength="mode === 'signup' ? 8 : undefined" required />
+        <input v-model="password" class="input pill" type="password" :autocomplete="mode === 'signup' ? 'new-password' : 'current-password'" :minlength="mode === 'signup' ? 8 : undefined" required />
         <small v-if="mode === 'signup'" class="muted">{{ $t('auth.passwordHint') }}</small>
       </label>
       <div v-if="error" class="notice error" role="alert">{{ error }}</div>
       <div v-if="info" class="notice ok" role="status">{{ info }}</div>
-      <button class="btn accent" type="submit" :disabled="busy || !email">
+      <button class="btn primary block" type="submit" :disabled="busy || !email">
         {{ mode === 'signup' ? $t('auth.signup') : mode === 'reset' ? $t('auth.resetSend') : $t('auth.login') }}
       </button>
     </form>
-    <button v-if="googleEnabled && mode !== 'reset'" class="btn" :disabled="busy || !supabase" @click="googleLogin">{{ labels[0] }}</button>
+    <button v-if="googleEnabled && mode !== 'reset'" class="btn block" :disabled="busy || !supabase" @click="googleLogin">{{ labels[0] }}</button>
     <button v-if="mode !== 'reset'" class="linkbtn" :disabled="busy || !email || !supabase" @click="resend">{{ labels[1] }}</button>
     <div class="stack small">
       <button v-if="mode !== 'signup'" class="linkbtn" @click="mode = 'signup'">{{ $t('auth.toSignup') }}</button>
@@ -128,7 +128,8 @@ async function googleLogin() {
 </template>
 
 <style scoped>
-.narrow { max-width: 520px; }
+.narrow { max-width: 440px; margin: 0 auto; }
+.block { width: 100%; padding: 14px 20px; }
 .h1 { font-size: clamp(36px, 7vw, 56px); }
 .stack > .linkbtn { align-self: flex-start; text-align: left; }
 </style>
