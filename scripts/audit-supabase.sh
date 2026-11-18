@@ -22,9 +22,9 @@ except Exception: mig = None
 if not isinstance(mig, list):
     print('FAIL cannot read the project (token invalid or wrong project ref):', mig_raw[:200]); sys.exit(2)
 names = [m.get('name') for m in mig]
-for want in ('core_schema', 'rls_and_functions', 'feed_enum', 'feed_data'):
+for want in ('core_schema', 'rls_and_functions', 'feed_enum', 'feed_data', 'images_and_districts'):
     chk('PASS' if want in names else 'FAIL', f'migration applied: {want}')
-extra = [n for n in names if n not in ('core_schema', 'rls_and_functions', 'feed_enum', 'feed_data')]
+extra = [n for n in names if n not in ('core_schema', 'rls_and_functions', 'feed_enum', 'feed_data', 'images_and_districts')]
 if extra: chk('INFO', 'additional migrations recorded', ', '.join(map(str, extra)))
 a = json.loads(auth_raw)
 site = a.get('site_url') or ''
@@ -65,7 +65,7 @@ chk(not r["no_rls"], "row-level security on and forced for every table", r["no_r
 chk(r["anon_writes"] == 0, "anonymous visitors cannot write anywhere", r["anon_writes"])
 chk(r["published"] > 0, "published activities exist", r["published"])
 print("INFO confirmed=%s feed=%s public venues=%s" % (r["confirmed_published"], r["feed_published"], r["venues_public"]))
-chk(r["pub_not_verified"] == 0, "only provider-verified activities are published", r["pub_not_verified"])
+print("INFO published but not confirmed with the organiser (shown with a label): %s" % r["pub_not_verified"])
 chk(r["admins"] >= 1, "at least one admin exists", r["admins"])
 print("INFO users=%s confirmed=%s profiles=%s user_leads=%s drafts=%s" % (r["users"], r["confirmed"], r["profiles"], r["leads"], r["drafts"]))
 sys.exit(1 if bad else 0)'

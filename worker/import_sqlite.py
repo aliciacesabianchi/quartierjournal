@@ -65,7 +65,22 @@ VERIFICATION = {
     "seed listing; confirm exceptions": "unverified",
 }
 
-SELECTED_DATES_RE = re.compile(r"selected|ausgewählt|bestimmten terminen|certain dates|einzelne", re.I)
+SELECTED_DATES_RE = re.compile(r"selected|ausgewählt|bestimmten terminen|certain dates|einzelne|first and third|not every", re.I)
+
+# Prefix rules for free-text registration wording that the exact table above does not cover.
+REGISTRATION_RULES = [
+    (re.compile(r"^no registration", re.I), "not_required"),
+    (re.compile(r"^advance registration required", re.I), "required"),
+    (re.compile(r"^presale available", re.I), "recommended"),
+    (re.compile(r"^unknown", re.I), "unknown"),
+]
+
+# Editorial category choices for verified family offers whose activity_type is too generic ("Early-years activity").
+TITLE_CATEGORY = {
+    "krabbelgruppe": "baby", "krabbel- und spieltreff": "baby", "geschichten-werkstatt kleinkinder": "culture",
+    "arche die oase": "meetup", "pbz riesbach – ryte, ryte rössli": "culture",
+}
+EXTRA_TYPE_CATEGORY = {"art / making": "culture", "play / meet-up": "play", "movement / language": "movement"}
 
 
 def uid(*parts: object) -> str:
@@ -152,6 +167,15 @@ def addr_key(s: str | None) -> str:
 
 
 FEED_TABLES = ("feed_places", "feed_occurrences")
+
+
+def street_of(addr: str | None) -> str | None:
+    """'Ottikerstrasse 51, 8006 Zürich' -> 'ottikerstr'; None when there is no 'street number' part."""
+    for part in (addr or "").split(","):
+        m = re.match(r"^\s*([A-Za-zÀ-ÿ.\- ]+?)\s+(\d+[a-zA-Z]?(?:[/-]\d+)?)\s*$", part)
+        if m:
+            return norm(m.group(1)).replace("strasse", "str")
+    return None
 
 
 def main() -> int:
@@ -267,9 +291,8 @@ def main() -> int:
         verif_vals = {VERIFICATION.get((m["status"] or "").lower(), "unverified") for m in members}
         verification = ("unverified" if "unverified" in verif_vals else
                         "secondary_source" if "secondary_source" in verif_vals else "provider_verified")
-        status = "published" if verification == "provider_verified" else "draft"
-        if status == "published":
-            published_venues.add(first["venue_id"])
+        status = "published"   # shown to everyone; unconfirmed ones carry their verification label on the site
+        published_venues.add(first["venue_id"])
         act_records.append((key, members, verification, status))
 
     # ── venues ──
@@ -279,7 +302,8 @@ def main() -> int:
         vid = uid("venue", v["id"])
         venue_uuid[v["id"]] = vid
         org = org_by_host.get(host(v["provider_url"]))
-        status = "published" if v["id"] in published_venues else "draft"
+        status = "published"
+        venue_verif = "provider_verified" if (v["provider_url"] and host(v["provider_url"]) not in AGGREGATOR_HOSTS) else "secondary_source"
         if v["quartier"] not in q_kreis:
             issues.append(f"Venue {v['id']} {v['name']}: quartier {v['quartier']!r} not in quarters table.")
         qsel = (f"(select qq.id from public.quartiers qq join public.districts d on d.id = qq.district_id "
@@ -287,13 +311,12 @@ def main() -> int:
         emit("insert into public.venues (id, name, kind, quartier_id, address, features, organiser_id, status, verification, data_origin) values "
              f"({q(vid)}, {q(v['name'])}, {q(v['kind'])}, {qsel}, "
              f"{q(v['address'])}, {q(v['features'])}, {q(org)}, {q(status)}, "
-             f"{q('provider_verified' if v['id'] in published_venues else 'unverified')}, 'legacy:sqlite') on conflict do nothing;")
+             f"{q(venue_verif)}, 'legacy:sqlite') on conflict do nothing;")
         # refresh a corrected quartier, but only on rows nobody has edited since the import
         emit(f"update public.venues set quartier_id = {qsel} where id = {q(vid)} and updated_at = created_at "
              f"and quartier_id is distinct from {qsel};")
-        if v["id"] in published_venues:
-            # a verified, published activity needs its venue to be public too (an earlier import may have left it as a draft)
-            emit(f"update public.venues set status = 'published', verification = 'provider_verified' where id = {q(vid)} and status = 'draft';")
+        # earlier imports left these as drafts: publish them (places directory) with a verification level matching their source
+        emit(f"update public.venues set status = 'published', verification = {q(venue_verif)} where id = {q(vid)} and status = 'draft';")
         legacy("venues", v["id"], "venues", vid)
         link(v["provider_url"], "organiser" if host(v["provider_url"]) not in AGGREGATOR_HOSTS else "discovery", venue_id=vid)
         if v["source_url"] != v["provider_url"]:
@@ -316,15 +339,19 @@ def main() -> int:
         reg_text = first["registration"]
         reg = REGISTRATION.get((reg_text or "unknown").strip().lower())
         if reg is None:
+            reg = next((v for rx, v in REGISTRATION_RULES if rx.search(reg_text or "")), None)
+        if reg is None:
             reg = "unknown"
             issues.append(f"Activity {title!r}: registration text {reg_text!r} not mapped; stored as unknown.")
-        cat = CATEGORY.get((first["activity_type"] or "").lower())
+        cat = (TITLE_CATEGORY.get((title or "").strip().lower()) or CATEGORY.get((first["activity_type"] or "").lower())
+               or EXTRA_TYPE_CATEGORY.get((first["activity_type"] or "").lower()))
         if cat is None:
             issues.append(f"Activity {title!r}: activity_type {first['activity_type']!r} has no category.")
         audience = "caregiver_with_childcare" if first["audience"] == "caregiver" else None
         notes = sorted({m["schedule_notes"] for m in members if m["schedule_notes"]})
-        if len(notes) > 1:
-            issues.append(f"Activity {title!r}: differing schedule notes merged: {notes}")
+        per_row_notes = len(notes) > 1   # different slots of one activity have different rules: keep each note on its own slot
+        if per_row_notes:
+            issues.append(f"Activity {title!r}: slots have different notes; kept per slot instead of merging.")
         last_checked = max((m["last_checked"] for m in members if m["last_checked"]), default=None)
         emit("insert into public.activities (id, venue_id, organiser_id, title, activity_type, category, audience, "
              "childcare_mode, age_text, age_min_months, age_max_months, age_numbers_from, price_text, is_free, "
@@ -332,7 +359,7 @@ def main() -> int:
              + ", ".join(q(x) for x in [
                  aid, venue_uuid.get(first["venue_id"]), org_by_host.get(host(first["provider_url"])), title,
                  first["activity_type"], cat, audience, first["childcare_mode"], first["age_range"], amin, amax, afrom,
-                 first["price"], is_free(first["price"]), reg, reg_text, " ".join(notes) or None, verification,
+                 first["price"], is_free(first["price"]), reg, reg_text, (None if per_row_notes else (" ".join(notes) or None)), verification,
                  last_checked, status])
              + ") on conflict do nothing;")
 
@@ -353,9 +380,12 @@ def main() -> int:
                 rec = "selected_dates" if SELECTED_DATES_RE.search(m["schedule_notes"] or "") else "weekly"
                 for wd in days:
                     tid = uid("template", m["id"], wd)
-                    emit("insert into public.schedule_templates (id, activity_id, weekday, recurrence, start_time, end_time) "
-                         f"values ({q(tid)}, {q(aid)}, {wd}, {q(rec)}, {q(m['start_local'])}, {q(m['end_local'])}) "
+                    tnote = m["schedule_notes"] if per_row_notes else None
+                    emit("insert into public.schedule_templates (id, activity_id, weekday, recurrence, start_time, end_time, note) "
+                         f"values ({q(tid)}, {q(aid)}, {wd}, {q(rec)}, {q(m['start_local'])}, {q(m['end_local'])}, {q(tnote)}) "
                          "on conflict do nothing;")
+                    emit(f"update public.schedule_templates set recurrence = {q(rec)}, note = {q(tnote)} where id = {q(tid)} "
+                         f"and (recurrence is distinct from {q(rec)} or note is distinct from {q(tnote)});")
                     n_tpl += 1
             else:
                 issues.append(f"Activity row {m['id']}: weekday {m['weekday']!r} not parseable and no date; no schedule imported.")
@@ -373,6 +403,13 @@ def main() -> int:
                 link(m["discovery_url"], "discovery", activity_id=aid)
             if m.get("booking_url") and m["booking_url"] not in (m["provider_url"], m["source_url"]):
                 link(m["booking_url"], "booking", activity_id=aid)
+        if per_row_notes:
+            emit(f"update public.activities set schedule_notes = null where id = {q(aid)} and schedule_notes is not null and updated_at = created_at;")
+        if reg != "unknown":
+            emit(f"update public.activities set registration = {q(reg)}::public.registration_kind where id = {q(aid)} and registration = 'unknown';")
+        if cat:
+            emit(f"update public.activities set category = {q(cat)} where id = {q(aid)} and category is null;")
+        emit(f"update public.activities set status = 'published' where id = {q(aid)} and status = 'draft';")
         if last_checked:
             emit(f"update public.activities set last_checked_on = greatest(last_checked_on, {q(last_checked)}::date) "
                  f"where id = {q(aid)} and updated_at = created_at;")
@@ -510,7 +547,30 @@ def main() -> int:
             if z and v["quartier"] in q_kreis:
                 plz_votes[z].add(q_kreis[v["quartier"]]); plz_count[z] += 1
         plz_kreis = {z: next(iter(k)) for z, k in plz_votes.items() if len(k) == 1 and plz_count[z] >= 3}
-        n_plz = 0
+        n_plz = n_street = n_org = 0
+
+        # Street rule: a street counts when >= 2 DIFFERENT known addresses (venues / places) lie on it and all are in one Kreis.
+        street_addr: dict[str, dict[str, int]] = defaultdict(dict)   # street -> {full address: kreis}
+        for pl in rows("select address, kreis from feed_places where kreis is not null"):
+            st_ = street_of(pl["address"])
+            if st_:
+                street_addr[st_][norm(pl["address"])] = pl["kreis"]
+        for v in venues:
+            st_ = street_of(v["address"])
+            if st_ and v["quartier"] in q_kreis:
+                street_addr[st_][norm(v["address"])] = q_kreis[v["quartier"]]
+        street_kreis = {k: next(iter(set(a.values()))) for k, a in street_addr.items() if len(a) >= 2 and len(set(a.values())) == 1}
+
+        # Organiser-area rule: the listing is on the own website of a district association (a "Quartierverein" with a Kreis in
+        # the directory). Not applied to organisers that work city-wide. Checked against entries with a known Kreis: 222 of 223 agree.
+        area_kreis: dict[str, int] = {}
+        for o in orgs:
+            if o["kreis"] and (o["name"] or "").lower().startswith("quartierverein") and o["website"]:
+                area_kreis[host(o["website"])] = o["kreis"]
+        def kreis_of_area(listing_url: str | None) -> int | None:
+            h = host(listing_url) or ""
+            hits = {k for d_, k in area_kreis.items() if h == d_ or h.endswith("." + d_)}
+            return next(iter(hits)) if len(hits) == 1 else None
         n_pub = n_arch = n_occ = n_with_venue = n_noloc = n_midnight = 0
         venues_to_show: set[str] = set()
         dup_notes: list[str] = []
@@ -535,12 +595,23 @@ def main() -> int:
             if vid and status == "published":
                 venues_to_show.add(vid)
             last_checked = max((o["last_seen"] for o in items if o["last_seen"]), default=None)
-            kreis_by_plz = plz_kreis.get(plz_of(first["location"])) if (not vid and first["location"]) else None
-            n_plz += 1 if kreis_by_plz else 0
-            dsel = f"(select id from public.districts where city_id = 'zurich' and number = {kreis_by_plz})" if kreis_by_plz else "null"
+            derived, basis = None, None
+            if not vid:
+                if first["location"] and plz_kreis.get(plz_of(first["location"])):
+                    derived, basis = plz_kreis[plz_of(first["location"])], "postal_code"; n_plz += 1
+                elif first["location"] and street_of(first["location"]) in street_kreis:
+                    derived, basis = street_kreis[street_of(first["location"])], "street"; n_street += 1
+                elif kreis_of_area(purl):
+                    derived, basis = kreis_of_area(purl), "organiser_area"; n_org += 1
+            kreis_by_plz = derived
+            dsel = f"(select id from public.districts where city_id = 'zurich' and number = {derived})" if derived else "null"
             emit("insert into public.activities (id, venue_id, title, verification, last_checked_on, status, location_text, data_origin, district_id, district_basis) values "
                  f"({q(aid)}, {q(vid)}, {q(first['title'])}, 'secondary_source', {q(last_checked)}, {q(status)}, "
-                 f"{q((first['location'] or '').strip() or None) if not vid else 'null'}, 'feed:chreis', {dsel}, {q('postal_code') if kreis_by_plz else 'null'}) on conflict do nothing;")
+                 f"{q((first['location'] or '').strip() or None) if not vid else 'null'}, 'feed:chreis', {dsel}, {q(basis)}) on conflict do nothing;")
+            if derived:
+                # rows imported earlier: set or refresh a DERIVED district (never touches a venue-based or manually set one)
+                emit(f"update public.activities set district_id = {dsel}, district_basis = {q(basis)} where id = {q(aid)} and venue_id is null "
+                     f"and (district_id is null or district_basis is not null) and (district_basis is distinct from {q(basis)} or district_id is null);")
             for (d, tm), ref in sorted(sessions.items()):
                 n_occ += 1
                 emit("insert into public.occurrences (id, activity_id, date, start_time, status, evidence_url, source_ref) values "
@@ -554,7 +625,7 @@ def main() -> int:
         for vid in sorted(venues_to_show):
             emit(f"update public.venues set status = 'published', verification = case when verification = 'unverified' then 'secondary_source' else verification end "
                  f"where id = {q(vid)} and status = 'draft';")
-        feed_stats.update(by_postal_code=n_plz, plz_rules=len(plz_kreis), groups=len(fgroups), published=n_pub, archived=n_arch, sessions=n_occ, with_venue=n_with_venue, no_location=n_noloc,
+        feed_stats.update(by_postal_code=n_plz, by_street=n_street, by_area=n_org, street_rules=len(street_kreis), area_rules=len(area_kreis), plz_rules=len(plz_kreis), groups=len(fgroups), published=n_pub, archived=n_arch, sessions=n_occ, with_venue=n_with_venue, no_location=n_noloc,
                           midnight=n_midnight, last_seen=last_seen, duplicates=dup_notes)
 
     emit("commit;")
@@ -617,7 +688,7 @@ def main() -> int:
             "",
             f"- **Places:** {fs['places_new']} imported as venues (marked *found via Chreis+*), {fs['places_matched']} matched to venues that already existed (linked, not duplicated), {fs['places_excluded']} skipped as outside the city perimeter.",
             f"- **Sessions:** {fs['sessions']} dated sessions grouped into **{fs['groups']} activities** (same title, same listing page and same address). {fs['published']} have a date today or later and are published; {fs['archived']} are in the past and are kept as history but not published.",
-            f"- **Where:** {fs['with_venue']} activities could be placed at a known venue by their address (this also gives their Kreis). For {fs['by_postal_code']} more, the Kreis was derived from the postal code (rule: at least 3 known places carry that code and all are in one Kreis; {fs['plz_rules']} codes qualify; this is marked as derived on the site). The rest keep the feed's address text and the Kreis stays unknown. {fs['no_location']} have no location at all.",
+            f"- **Where:** {fs['with_venue']} activities could be placed at a known venue by their address (this also gives their Kreis). The Kreis was derived for more entries and is marked as derived on the site: {fs['by_postal_code']} from the postal code (at least 3 known places carry the code and all agree; {fs['plz_rules']} codes), {fs['by_street']} from the street (at least 2 different known addresses on it, all in one Kreis; {fs['street_rules']} streets), {fs['by_area']} from the district association's own website ({fs['area_rules']} associations; 222 of 223 known entries agreed in a check). The rest keep the feed's address text and the Kreis stays unknown. {fs['no_location']} have no location at all.",
             f"- **Times:** a start time of exactly 00:00 is treated as \"no time given\" ({fs['midnight']} sessions). There are no end times, ages, prices or registration details in the feed, so they stay unknown.",
             "- **Links:** the feed's event page is stored as a *listing* link, never as the organiser, because the original organiser is unverified. The feed itself is stored as the *discovery* link.",
             "- **Shown as:** verification level *secondary source*, so the site labels them \"found via Chreis+, not yet confirmed with the organiser\". An admin can promote an entry to *provider verified* after checking it.",

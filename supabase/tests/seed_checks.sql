@@ -19,9 +19,17 @@ select test.expect(not exists (select 1 from public.venues where quartier_id is 
 select test.expect(not exists (
   select 1 from public.activities a join public.venues v on v.id = a.venue_id
   where a.status = 'published' and v.status <> 'published'), 'published activities sit at published venues');
-select test.expect(not exists (
-  select 1 from public.activities a where a.status = 'published' and a.verification <> 'provider_verified' and a.data_origin <> 'feed:chreis'),
-  'only provider-verified activities from the legacy data are published');
+select test.expect((select count(*) from public.activities where data_origin = 'legacy:sqlite' and status <> 'published') = 0,
+  'all legacy activities are public (unconfirmed ones carry their verification label)');
+select test.expect((select count(*) from public.venues where data_origin = 'legacy:sqlite' and status <> 'published') = 0, 'all legacy places are public');
+select test.expect(not exists (select 1 from public.activities where verification = 'unverified' and status = 'published' and data_origin = 'feed:chreis'),
+  'feed entries are never labelled unverified: they are labelled as secondary source');
+select test.expect((select count(*) from public.activities where district_basis is not null and venue_id is not null) = 0,
+  'a derived district is only ever set on entries without a venue');
+select test.expect((select count(distinct district_basis) from public.activities where district_basis is not null) = 3, 'three derived-district rules are in use');
+select test.expect((select count(*) from public.schedule_templates t join public.activities a on a.id = t.activity_id
+  where a.title = 'Arche die Oase' and t.note is not null) = 2, 'Arche die Oase keeps one note per slot');
+select test.expect((select count(*) from public.activities where data_origin = 'legacy:sqlite' and registration <> 'unknown') >= 15, 'registration wording is mapped (not left unknown)');
 select test.expect(not exists (
   select 1 from public.activities a where a.data_origin = 'feed:chreis' and a.verification <> 'secondary_source'),
   'feed activities are always labelled as secondary source');
