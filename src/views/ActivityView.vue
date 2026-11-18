@@ -87,7 +87,7 @@ async function add(item: { template_id?: string; occurrence_id?: string }) {
         </div>
         <h1 class="title">{{ a.title }}</h1>
         <p class="lead">{{ place || $t('ui.tile.noPlace') }}<template v-if="a.district_number"> · {{ f.kreis(a.district_number) }}</template></p>
-        <p v-if="a.district_basis" class="tiny muted" style="margin: -6px 0 0">{{ $t(a.district_basis === 'postal_code' ? 'ui.tile.kreisDerived' : a.district_basis === 'street' ? 'ui.tile.kreisStreet' : 'ui.tile.kreisArea') }}</p>
+        <p v-if="a.district_basis" class="tiny muted" style="margin: -6px 0 0">{{ $t(a.district_basis === 'postal_code' ? 'ui.tile.kreisDerived' : a.district_basis === 'street' ? 'ui.tile.kreisStreet' : a.district_basis === 'address' ? 'ui.tile.kreisAddress' : 'ui.tile.kreisArea') }}</p>
         <div v-if="fromFeed" class="notice" role="note">{{ $t('ui.feedInfo') }}</div>
 
         <section class="stack">
