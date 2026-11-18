@@ -9,7 +9,7 @@ import { useFormat } from '@/composables/useFormat'
 import { buildIcs, googleCalendarUrl, type IcsItem } from '@/domain/ics'
 import { todayInZurich } from '@/domain/time'
 import { downloadIcs, icsLabels } from '@/lib/calendar'
-import { themeFor } from '@/domain/themes'
+import { tileFor } from '@/domain/taxonomy'
 import SceneArt from '@/components/SceneArt.vue'
 import type { ActivityCard } from '@/domain/types'
 import ShareBox from '@/components/ShareBox.vue'
@@ -25,7 +25,7 @@ const preview = ref<ActivityCard | null>(null)
 const a = computed(() => cat.byId(props.id) ?? preview.value ?? undefined)
 const sources = ref<{ role: string; url: string; host: string | null }[]>([])
 const imgOk = ref(true)
-const theme = computed(() => (a.value ? themeFor(a.value) : null))
+const theme = computed(() => (a.value ? tileFor(a.value) : null))
 const busy = ref<string | null>(null)
 const message = ref<{ kind: 'ok' | 'error'; text: string } | null>(null)
 
@@ -78,7 +78,7 @@ async function add(item: { template_id?: string; occurrence_id?: string }) {
     <article v-else class="detail">
       <div class="hero card">
         <img v-if="a.image_url && imgOk" :src="a.image_url" alt="" referrerpolicy="no-referrer" class="heroimg" @error="imgOk = false" />
-        <div v-else-if="theme" class="theme" :style="{ background: theme.bg, color: theme.fg }"><span>{{ $t(`ui.theme.${theme.id}`) }}</span></div>
+        <div v-else-if="theme" class="theme" :style="{ background: theme.bg, color: theme.fg }"><span>{{ $t(theme.labelKey) }}</span></div>
         <SceneArt v-else :seed="a.id" :label="$t('card.noImage')" />
         <a v-if="a.image_url && imgOk" :href="a.image_source_url || a.image_url" target="_blank" rel="noopener noreferrer" class="credit">{{ $t('ui.tile.image', { host: a.image_credit || '' }) }}</a>
       </div>

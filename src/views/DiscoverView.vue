@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { MAINS, classify, subsOf, type Main } from '@/domain/taxonomy'
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useCatalogue } from '@/stores/catalogue'
@@ -18,7 +19,6 @@ const route = useRoute()
 const router = useRouter()
 const f = useFormat()
 
-const CATEGORIES = ['baby', 'playgroup', 'play', 'music', 'movement', 'creative', 'culture', 'festive', 'learning', 'health', 'meetup'] as const
 const AGES = [6, 12, 24, 36, 48, 60] // months; label as "under 1", "1 year", …
 const PAGE = 12
 
@@ -34,6 +34,7 @@ function fromQuery(): DiscoverFilters & { fit: boolean } {
     timeOfDay: (q.t === 'am' || q.t === 'pm' ? q.t : null),
     childAgeMonths: num(q.age),
     category: (q.c as string) || null,
+    subcategory: (q.sc as string) || null,
     freeOnly: q.free === '1',
     noRegistration: q.noreg === '1',
     forCaregiver: (q.for === 'caregiver' || q.for === 'child' ? q.for : 'all'),
@@ -58,6 +59,7 @@ watch(s, () => {
   if (s.timeOfDay) q.t = s.timeOfDay
   if (s.childAgeMonths != null) q.age = String(s.childAgeMonths)
   if (s.category) q.c = s.category
+  if (s.subcategory) q.sc = s.subcategory
   if (s.freeOnly) q.free = '1'
   if (s.noRegistration) q.noreg = '1'
   if (s.forCaregiver !== 'all') q.for = s.forCaregiver
@@ -73,7 +75,7 @@ watch(s, () => {
 onMounted(() => cat.load())
 
 const extraCount = computed(() =>
-  [s.districts.length > 0, s.timeOfDay, s.childAgeMonths != null, s.category, s.freeOnly, s.noRegistration,
+  [s.districts.length > 0, s.timeOfDay, s.childAgeMonths != null, s.freeOnly, s.noRegistration,
     s.forCaregiver !== 'all', s.favouritesOnly, s.fit, s.when !== 'any'].filter(Boolean).length)
 
 const hasSchedule = computed(() => me.blocks.some((b) => me.selfIds.has(b.caregiver_id)))
@@ -92,6 +94,23 @@ const hiddenNoKreis = computed(() => (s.districts.length && !s.includeUnknownKre
   ? cat.cards.filter((a) => a.district_number == null && matches(a, { ...s, includeUnknownKreis: true }, me.favourites, today)).length : 0))
 const hiddenNoAge = computed(() => (s.childAgeMonths != null && !s.includeUnknownAge
   ? cat.cards.filter((a) => matches(a, { ...s, includeUnknownAge: true }, me.favourites, today)).length - results.value.length : 0))
+
+// category chips: counts reflect all other filters, so a chip never promises more than it delivers
+const forCounts = computed(() => cat.cards.filter((a) => matches(a, { ...s, category: null, subcategory: null }, me.favourites, today)))
+const mainCounts = computed(() => {
+  const m = new Map<string, number>()
+  for (const a of forCounts.value) { const c = classify(a); if (c) m.set(c.main, (m.get(c.main) ?? 0) + 1) }
+  return m
+})
+const subCounts = computed(() => {
+  const m = new Map<string, number>()
+  if (!s.category) return m
+  for (const a of forCounts.value) { const c = classify(a); if (c?.main === s.category && c.sub) m.set(c.sub, (m.get(c.sub) ?? 0) + 1) }
+  return m
+})
+const shownSubs = computed(() => (s.category ? subsOf(s.category as Main).filter((x) => (subCounts.value.get(x) ?? 0) > 0) : []))
+const shownMains = computed(() => MAINS.filter((m) => (mainCounts.value.get(m) ?? 0) > 0 || s.category === m))
+function pickMain(m: string | null) { s.category = s.category === m ? null : m; s.subcategory = null }
 
 function toggleDistrict(n: number) {
   s.districts = s.districts.includes(n) ? s.districts.filter((x) => x !== n) : [...s.districts, n].sort((a, b) => a - b)
@@ -130,6 +149,15 @@ const ageLabel = (m: number) => (m < 12 ? 'discover.ageMonths' : null)
       <button class="chip" :aria-pressed="s.scope === 'verified'" @click="s.scope = 'verified'">{{ $t('ui.disc.scopeVerified') }} ({{ verifiedCount }})</button>
     </div>
 
+    <div class="chips cats" role="group" :aria-label="$t('discover.category')">
+      <button class="chip" :aria-pressed="!s.category" @click="pickMain(null)">{{ $t('discover.allCategories') }}</button>
+      <button v-for="m in shownMains" :key="m" class="chip" :aria-pressed="s.category === m" @click="pickMain(m)">{{ $t(`tax.main.${m}`) }} ({{ mainCounts.get(m) ?? 0 }})</button>
+    </div>
+    <div v-if="s.category && shownSubs.length" class="chips subs" role="group" :aria-label="$t(`tax.main.${s.category}`)">
+      <button class="chip small" :aria-pressed="!s.subcategory" @click="s.subcategory = null">{{ $t('discover.allCategories') }}</button>
+      <button v-for="x in shownSubs" :key="x" class="chip small" :aria-pressed="s.subcategory === x" @click="s.subcategory = s.subcategory === x ? null : x">{{ $t(`tax.sub.${x}`) }} ({{ subCounts.get(x) ?? 0 }})</button>
+    </div>
+
     <section v-show="filtersOpen" id="filters" class="panel stack">
       <fieldset class="kreise">
         <legend class="small" style="font-weight: 500">{{ $t('discover.chooseKreis') }}</legend>
@@ -158,12 +186,6 @@ const ageLabel = (m: number) => (m < 12 ? 'discover.ageMonths' : null)
             <option :value="null">{{ $t('discover.anyTime') }}</option>
             <option value="am">{{ $t('discover.am') }}</option>
             <option value="pm">{{ $t('discover.pm') }}</option>
-          </select>
-        </label>
-        <label class="field"><span>{{ $t('discover.category') }}</span>
-          <select v-model="s.category" class="input">
-            <option :value="null">{{ $t('discover.allCategories') }}</option>
-            <option v-for="c in CATEGORIES" :key="c" :value="c">{{ $t(`discover.cats.${c}`) }}</option>
           </select>
         </label>
         <label class="field"><span>{{ $t('discover.audience') }}</span>

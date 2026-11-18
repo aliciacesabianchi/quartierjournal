@@ -1,5 +1,5 @@
 import type { ActivityCard, CareBlock, Weekday } from './types'
-import { categoryOf } from './themes'
+import { classify } from './taxonomy'
 import { addDays, isoWeekday, toMinutes } from './time'
 
 export interface DiscoverFilters {
@@ -8,7 +8,8 @@ export interface DiscoverFilters {
   weekday: Weekday | null
   timeOfDay: 'am' | 'pm' | null
   childAgeMonths: number | null
-  category: string | null
+  category: string | null       // main category (taxonomy.ts)
+  subcategory: string | null
   freeOnly: boolean
   noRegistration: boolean
   forCaregiver: 'all' | 'caregiver' | 'child'
@@ -23,7 +24,7 @@ export interface DiscoverFilters {
 }
 
 export const emptyFilters = (): DiscoverFilters => ({
-  q: '', districts: [], weekday: null, timeOfDay: null, childAgeMonths: null, category: null,
+  q: '', districts: [], weekday: null, timeOfDay: null, childAgeMonths: null, category: null, subcategory: null,
   freeOnly: false, noRegistration: false, forCaregiver: 'all', favouritesOnly: false,
   scope: 'all', when: 'any', includeUnknownAge: false, includeUnknownKreis: false,
 })
@@ -92,7 +93,11 @@ export function matches(a: ActivityCard, f: DiscoverFilters, favourites: Set<str
   if (f.districts.length) {
     if (a.district_number == null ? !f.includeUnknownKreis : !f.districts.includes(a.district_number)) return false
   }
-  if (f.category && categoryOf(a) !== f.category) return false
+  if (f.category || f.subcategory) {
+    const c = classify(a)
+    if (f.category && c?.main !== f.category) return false
+    if (f.subcategory && c?.sub !== f.subcategory) return false
+  }
   if (f.freeOnly && a.is_free !== true) return false
   if (f.noRegistration && a.registration !== 'not_required') return false
   if (f.forCaregiver === 'caregiver' && a.audience !== 'caregiver_with_childcare') return false
