@@ -14,3 +14,7 @@ node e2e/gateway.mjs            # prints the anon key
 pnpm dev &
 node e2e/flows.mjs e2e-out      # 71 checks + screenshots (4 languages × mobile/desktop)
 ```
+
+## One-command local preview
+`e2e/start-preview.sh` rebuilds the local database, starts PostgREST, the test gateway and the dev server, and loads a demo account
+(`demo@quartierjournal.test` / `demo-pilot-2026`, sample data from `e2e/demo-data.sql`). **Local test data only. Never run it against the real project.**
