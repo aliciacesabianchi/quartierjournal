@@ -4,14 +4,14 @@
 // Not categories on purpose: Kita and registration-only playgroups (they are not "go on the day" offers).
 import type { ActivityCard } from './types'
 
-export type Main = 'baby' | 'play' | 'music' | 'movement' | 'creative' | 'culture' | 'nature' | 'festive' | 'parents' | 'meetup'
-export const MAINS: Main[] = ['baby', 'play', 'music', 'movement', 'creative', 'culture', 'nature', 'festive', 'parents', 'meetup']
+export type Main = 'baby' | 'play' | 'music' | 'movement' | 'creative' | 'culture' | 'nature' | 'festive' | 'shopping' | 'parents' | 'meetup'
+export const MAINS: Main[] = ['baby', 'play', 'music', 'movement', 'creative', 'culture', 'nature', 'festive', 'shopping', 'parents', 'meetup']
 
 const DARK = '#1b1b1b'
 export const COLOURS: Record<Main, { bg: string; fg: string }> = {
   baby: { bg: '#f4a9c4', fg: DARK }, play: { bg: '#52b86c', fg: DARK }, music: { bg: '#d0317a', fg: '#ffffff' },
   movement: { bg: '#f28c3c', fg: DARK }, creative: { bg: '#fdce4c', fg: DARK }, culture: { bg: '#3b4a8c', fg: '#ffffff' },
-  nature: { bg: '#2d6a4f', fg: '#ffffff' }, festive: { bg: '#d9473f', fg: '#ffffff' }, parents: { bg: '#9bd6c8', fg: DARK },
+  nature: { bg: '#2d6a4f', fg: '#ffffff' }, festive: { bg: '#d9473f', fg: '#ffffff' }, shopping: { bg: '#c8a8e9', fg: DARK }, parents: { bg: '#9bd6c8', fg: DARK },
   meetup: { bg: '#fcf8e8', fg: DARK },
 }
 
@@ -69,6 +69,14 @@ export const RULES: Rule[] = [
   r('culture', 'museums', /museum|ausstellung|vernissage|finissage|galerie|art friday|kunsthaus/i),
   r('culture', 'tours', /\bführung|rundgang|stadtrundgang/i),
   r('culture', 'film', /kino|film|kinimatograf/i),
+  // shopping & second-hand (before festive/meetup so flea markets and swaps land here)
+  r('shopping', 'repair', /repair|reparatur|reparier/i),
+  r('shopping', 'booksswap', /buch-?tausch|bücherbörse|bücherflohmarkt|bücherschrank|spielzeugtausch|spielzeugbörse/i),
+  r('shopping', 'clothesswap', /kleidertausch|kleiderbörse|kleiderbazar|tauschbörse|\bswap\b|tauschmarkt|kleider.*tausch/i),
+  r('shopping', 'babygear', /babyartikel|babybörse|kinderwagen|babyausstattung|kinderartikel|kinderbasar|kindersachen|chinderzüg/i),
+  r('shopping', 'kidsflea', /flohmi|flohmarkt|flowmarkt|trödel|brockenstube|brocki|brockenhaus/i),
+  r('shopping', 'secondhand', /secondhand|second hand|second-hand|occasion|gebraucht|krims-?krams/i),
+  r('shopping', 'localshops', /quartierladen|dorfladen|hofladen|bio-?laden|unverpackt|quartierkiosk/i),
   // festive
   r('festive', 'lanterns', /räbeli|laternen|lichterumzug|plan lumière/i),
   r('festive', 'samichlaus', /samichlaus|chlaus|nikolaus/i),
@@ -77,7 +85,7 @@ export const RULES: Rule[] = [
   r('festive', 'easter', /ostern|osterfest|osternest|easter/i),
   r('festive', 'summerfest', /sommerfest|sommerfäscht/i),
   r('festive', 'harvest', /erntefest|herbstfest|chilbi|ernte/i),
-  r('festive', 'markets', /markt|märt|flohmi|börse|basar/i),
+  r('festive', 'markets', /markt|märt|basar/i),
   r('festive', 'culturalfests', /kulturfest|1\. august|fiesta|bundesfeier|neujahr|silvester|jahresanfang|anstossen/i),
   r('festive', 'neighbourhoodfests', /quartierfest|familienfest|\bfest\b|feier|fäscht|jubiläum|party|baumfeier/i),
   // parents & childcare
@@ -97,7 +105,7 @@ export const RULES: Rule[] = [
   r('meetup', 'lunch', /mittagessen|lunch|zmittag|raclette|znüni|geniessen|genies|apéro|essen\b/i),
   r('meetup', 'familycafe', /familiencaf|familienkaf|family caf|kaffee.*familie/i),
   r('meetup', 'groups', /begegnung|\bclub\b|frauen|männer|senior|alter\b|zusammen|gemeinsam|together|jass/i),
-  r('meetup', 'openmeet', /treff|quartier|stammtisch|nachbar|café|cafe|kafi|kaffee|abend\b|quiz|stand-up|comedy|bar\b|tausch|repair/i),
+  r('meetup', 'openmeet', /treff|quartier|stammtisch|nachbar|café|cafe|kafi|kaffee|abend\b|quiz|stand-up|comedy|bar\b/i),
   // play
   r('play', 'ludothek', /ludothek|spielzeugausleihe/i),
   r('play', 'indoor', /indoor/i),
@@ -115,7 +123,7 @@ export const RULES: Rule[] = [
 ]
 
 /** Legacy category values (from our researched entries) → main category. Playgroup-style entries count as play. */
-const LEGACY: Record<string, Main> = { play: 'play', baby: 'baby', playgroup: 'play', music: 'music', movement: 'movement', culture: 'culture', meetup: 'meetup', creative: 'creative', nature: 'nature', festive: 'festive', parents: 'parents' }
+const LEGACY: Record<string, Main> = { play: 'play', baby: 'baby', playgroup: 'play', shopping: 'shopping', music: 'music', movement: 'movement', culture: 'culture', meetup: 'meetup', creative: 'creative', nature: 'nature', festive: 'festive', parents: 'parents' }
 
 export interface Classified { main: Main; sub: string | null; rule: Rule | null }
 

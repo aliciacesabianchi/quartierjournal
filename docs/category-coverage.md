@@ -2,7 +2,7 @@
 
 Generated from the live catalogue (873 published entries). Empty subcategories are hidden on the site until they have entries; this list is the to-do list for finding more.
 
-No category ("Weitere Angebote", found under "Alle" only): 240
+No category ("Weitere Angebote", found under "Alle" only): 241
 
 ## Baby & Kleinkind — 6
 
@@ -81,18 +81,28 @@ No category ("Weitere Angebote", found under "Alle" only): 240
 - Spaziergänge & kleine Wanderungen: 7
 - Naturbeobachtung: 1
 
-## Feste & Feiern — 79
+## Feste & Feiern — 71
 
 - Räbeliechtli & Laternenumzüge: 0  ← **no entries yet**
 - Samichlaus: 12
-- Advent & Weihnachten: 42
+- Advent & Weihnachten: 41
 - Fasnacht: 3
 - Ostern & Frühlingsfeste: 1
 - Sommerfeste: 0  ← **no entries yet**
 - Ernte- & Herbstfeste: 1
-- Märkte: 9
+- Märkte: 2
 - Kulturfeste: 5
 - Quartier- & Familienfeste: 6
+
+## Shopping & Secondhand — 10
+
+- Repair Café: 1
+- Bücher- & Spielzeugtausch: 1
+- Kleidertausch & Kleiderbörse: 0  ← **no entries yet**
+- Baby- & Kinderartikel-Börse: 0  ← **no entries yet**
+- Kinderflohmarkt: 5
+- Secondhand-Läden: 3
+- Quartierläden & Unverpackt: 0  ← **no entries yet**
 
 ## Eltern & Betreuung — 27
 
@@ -106,7 +116,7 @@ No category ("Weitere Angebote", found under "Alle" only): 240
 - Erziehung & Entwicklung: 5
 - Elternaustausch: 8
 
-## Café & Treff — 130
+## Café & Treff — 127
 
 - Eltern-Kind-Café: 0  ← **no entries yet**
 - Sprach- & Austauschcafés: 0  ← **no entries yet**
@@ -114,5 +124,5 @@ No category ("Weitere Angebote", found under "Alle" only): 240
 - Gemeinsames Mittagessen: 24
 - Familiencafé: 0  ← **no entries yet**
 - Begegnungsgruppen: 24
-- Offener Quartiertreff: 78
+- Offener Quartiertreff: 75
 
