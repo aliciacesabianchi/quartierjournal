@@ -69,6 +69,7 @@ const de: typeof en = {
     loginToPlan: 'Melde dich an, um das in deine Woche zu übernehmen.',
     notFound: 'Dieses Angebot wurde nicht gefunden oder ist nicht mehr veröffentlicht.',
     contentLanguage: 'Die Angaben werden in der Sprache des Anbieters angezeigt.',
+    endUnknown: 'Endzeit nicht veröffentlicht. Als eine Stunde dargestellt.',
     noTimes: 'Keine Zeiten angegeben. Bitte beim Anbieter nachfragen.',
   },
   auth: {
@@ -81,6 +82,7 @@ const de: typeof en = {
     checkEmail: 'Fast geschafft: Wir haben einen Bestätigungslink an {email} geschickt. Öffne ihn, um dein Konto zu aktivieren (auch im Spam-Ordner nachsehen).',
     maybeExists: 'Diese E-Mail-Adresse ist möglicherweise schon registriert. Versuche dich anzumelden oder setze dein Passwort zurück.',
     linkInvalid: 'Dieser Link ist abgelaufen oder wurde schon verwendet. Fordere auf der Anmeldeseite einen neuen an.',
+    confirmedLogin: 'Du kannst dich jetzt anmelden. Falls du gerade deine E-Mail bestätigt hast, ist deine Adresse verifiziert.',
     newPassword: 'Neues Passwort', setPassword: 'Neues Passwort speichern', passwordUpdated: 'Dein Passwort wurde geändert.',
     errors: { invalid: 'E-Mail oder Passwort ist falsch.', notConfirmed: 'Bitte bestätige zuerst deine E-Mail-Adresse über den Link in unserer E-Mail.', rateLimit: 'Zu viele Versuche. Bitte warte ein paar Minuten.', weak: 'Bitte wähle ein Passwort mit mindestens 8 Zeichen.', generic: 'Das hat nicht geklappt: {msg}' },
     privacy: 'Wir speichern deine E-Mail, deinen Wochenplan und was du in deinem Profil einträgst, sonst nichts. Du kannst dein Konto jederzeit löschen.',

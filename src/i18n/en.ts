@@ -67,6 +67,7 @@ export default {
     loginToPlan: 'Log in to add this to your week.',
     notFound: 'This activity was not found or is no longer published.',
     contentLanguage: 'Details are shown in the organiser’s language.',
+    endUnknown: 'End time not published. Shown as one hour.',
     noTimes: 'No times listed. Please check with the organiser.',
   },
   auth: {
@@ -79,6 +80,7 @@ export default {
     checkEmail: 'Almost done: we have sent a confirmation link to {email}. Open it to activate your account (check your spam folder too).',
     maybeExists: 'This email address may already be registered. Try logging in, or reset your password.',
     linkInvalid: 'This link has expired or was already used. Request a new one from the login page.',
+    confirmedLogin: 'You can log in now. If you just confirmed your email, your address is verified.',
     newPassword: 'New password', setPassword: 'Save new password', passwordUpdated: 'Your password has been changed.',
     errors: { invalid: 'Email or password is wrong.', notConfirmed: 'Please confirm your email address first: use the link in the email we sent you.', rateLimit: 'Too many attempts. Please wait a few minutes.', weak: 'Please choose a password with at least 8 characters.', generic: 'That didn’t work: {msg}' },
     privacy: 'We store your email, your weekly plan and anything you enter in your profile, nothing else. You can delete your account at any time.',

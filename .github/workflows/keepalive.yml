@@ -1,0 +1,29 @@
+name: Keep Supabase awake
+# The free Supabase plan pauses a project after 7 days without activity. This makes one harmless public read
+# (the list of districts) every 3 days. It uses only the PUBLIC anon key; no secret is needed.
+# Setup: GitHub repo -> Settings -> Secrets and variables -> Actions -> New repository secret:
+#   SUPABASE_URL       e.g. https://abcdefgh.supabase.co
+#   SUPABASE_ANON_KEY  the public anon/publishable key
+# (GitHub switches scheduled workflows off after 60 days without any repository activity; push or run it manually then.)
+on:
+  schedule:
+    - cron: '17 5 */3 * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Read one public row
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "::error::Add the repository secrets SUPABASE_URL and SUPABASE_ANON_KEY (see the comment at the top of this file)."; exit 1
+          fi
+          code=$(curl -sS -o /tmp/out.json -w '%{http_code}' \
+            "$SUPABASE_URL/rest/v1/districts?select=number&limit=1" \
+            -H "apikey: $SUPABASE_ANON_KEY" -H "Authorization: Bearer $SUPABASE_ANON_KEY")
+          echo "HTTP $code"; head -c 200 /tmp/out.json; echo
+          [ "$code" = "200" ] || { echo "::error::Supabase did not answer with 200 (is the project paused?)"; exit 1; }

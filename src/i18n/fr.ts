@@ -69,6 +69,7 @@ const fr: typeof en = {
     loginToPlan: 'Connectez-vous pour l’ajouter à votre semaine.',
     notFound: 'Cette activité est introuvable ou n’est plus publiée.',
     contentLanguage: 'Les détails sont affichés dans la langue de l’organisateur.',
+    endUnknown: 'Heure de fin non publiée. Affichée comme une heure.',
     noTimes: 'Aucun horaire indiqué. Merci de vous renseigner auprès de l’organisateur.',
   },
   auth: {
@@ -81,6 +82,7 @@ const fr: typeof en = {
     checkEmail: 'Presque fini : nous avons envoyé un lien de confirmation à {email}. Ouvrez-le pour activer votre compte (vérifiez aussi vos spams).',
     maybeExists: 'Cette adresse e-mail est peut-être déjà enregistrée. Essayez de vous connecter ou réinitialisez votre mot de passe.',
     linkInvalid: 'Ce lien a expiré ou a déjà été utilisé. Demandez-en un nouveau depuis la page de connexion.',
+    confirmedLogin: 'Vous pouvez maintenant vous connecter. Si vous venez de confirmer votre e-mail, votre adresse est vérifiée.',
     newPassword: 'Nouveau mot de passe', setPassword: 'Enregistrer le mot de passe', passwordUpdated: 'Votre mot de passe a été modifié.',
     errors: { invalid: 'E-mail ou mot de passe incorrect.', notConfirmed: 'Merci de confirmer d’abord votre adresse e-mail avec le lien que nous vous avons envoyé.', rateLimit: 'Trop de tentatives. Merci de patienter quelques minutes.', weak: 'Choisissez un mot de passe d’au moins 8 caractères.', generic: 'Cela n’a pas fonctionné : {msg}' },
     privacy: 'Nous enregistrons votre e-mail, votre planning et ce que vous saisissez dans votre profil, rien d’autre. Vous pouvez supprimer votre compte à tout moment.',

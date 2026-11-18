@@ -74,7 +74,7 @@ describe('filters', () => {
 })
 
 describe('ics', () => {
-  const labels = { unconfirmed: 'Usual time, not confirmed', selectedDates: 'Selected dates only', organiser: 'Organiser', link: 'Link' }
+  const labels = { unconfirmed: 'Usual time, not confirmed', selectedDates: 'Selected dates only', organiser: 'Organiser', link: 'Link', endUnknown: 'End time not published' }
   const now = new Date('2026-11-09T10:00:00Z')
   it('escapes and folds per RFC 5545', () => {
     expect(escapeText('a,b;c\\d\ne')).toBe('a\\,b\\;c\\\\d\\ne')
@@ -91,6 +91,8 @@ describe('ics', () => {
     expect(ics).toContain('STATUS:TENTATIVE')
     expect(ics).toContain('DTSTART;TZID=Europe/Zurich:20261129T101500')
     expect(ics).toContain('DURATION:PT1H')
+    // the dated session has no end time: the assumed 1 h must be disclosed, the weekly one (has an end) must not
+    expect(ics.match(/End time not published/g)).toHaveLength(1)
     expect(ics.match(/BEGIN:VEVENT/g)).toHaveLength(2)
     expect(ics.endsWith('END:VCALENDAR\r\n')).toBe(true)
   })

@@ -10,6 +10,8 @@ import pg from 'pg'
 const SECRET = process.env.E2E_JWT_SECRET ?? 'e2e-local-only-secret-0123456789abcdef'
 const REST = process.env.E2E_REST ?? 'http://127.0.0.1:3001'
 const db = new pg.Pool({ connectionString: process.env.E2E_DB ?? 'postgresql://postgres@127.0.0.1:54322/qj_e2e' })
+db.on('error', (e) => console.error('pg pool error (ignored, e.g. database was reset):', e.message))
+process.on('uncaughtException', (e) => console.error('uncaught (ignored):', e.message))
 
 const b64 = (o) => Buffer.from(typeof o === 'string' ? o : JSON.stringify(o)).toString('base64url')
 export function sign(payload) {

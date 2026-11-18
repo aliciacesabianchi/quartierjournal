@@ -1,7 +1,7 @@
 import type { IcsLabels } from '@/domain/ics'
 
 export function icsLabels(t: (k: string) => string): IcsLabels {
-  return { unconfirmed: t('activity.weeklyNote'), selectedDates: t('activity.selectedNote'), organiser: t('card.organiser'), link: t('activity.share') }
+  return { unconfirmed: t('activity.weeklyNote'), selectedDates: t('activity.selectedNote'), organiser: t('card.organiser'), link: t('activity.share'), endUnknown: t('activity.endUnknown') }
 }
 
 export function downloadIcs(content: string, name: string) {

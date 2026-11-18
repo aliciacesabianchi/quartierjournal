@@ -43,6 +43,7 @@ export interface IcsLabels {
   selectedDates: string  // e.g. "Only on selected dates. Check with the organiser."
   organiser: string      // e.g. "Organiser"
   link: string           // link back to the activity page
+  endUnknown?: string    // shown when the source gives no end time (the calendar needs one, so 1 h is used)
 }
 
 export interface IcsItem { activity: ActivityCard; template?: TemplateSlot; occurrence?: Occurrence }
@@ -60,6 +61,7 @@ export function buildIcs(items: IcsItem[], labels: IcsLabels, opts: { now?: Date
     const date = o ? o.date : nextDateForWeekday(t!.weekday, todayInZurich(now))
     const desc: string[] = []
     if (t) desc.push(t.recurrence === 'selected_dates' ? labels.selectedDates : labels.unconfirmed)
+    if (!slot.end && labels.endUnknown) desc.push(labels.endUnknown)
     if (a.organiser_url) desc.push(`${labels.organiser}: ${a.organiser_url}`)
     desc.push(`${opts.appUrl}/a/${a.id}`)
     lines.push('BEGIN:VEVENT', `UID:${slot.id}@quartierjournal`, `DTSTAMP:${stamp(now)}`,
@@ -89,7 +91,7 @@ export function googleCalendarUrl(item: IcsItem, labels: IcsLabels, opts: { now?
     dates: `${dt(date, slot.start)}/${dt(date, end)}`,
     ctz: 'Europe/Zurich',
     location: location(a),
-    details: [t ? (t.recurrence === 'selected_dates' ? labels.selectedDates : labels.unconfirmed) : '', `${opts.appUrl}/a/${a.id}`].filter(Boolean).join('\n'),
+    details: [t ? (t.recurrence === 'selected_dates' ? labels.selectedDates : labels.unconfirmed) : '', !slot.end ? (labels.endUnknown ?? '') : '', `${opts.appUrl}/a/${a.id}`].filter(Boolean).join('\n'),
   })
   if (t?.recurrence === 'weekly') p.set('recur', `RRULE:FREQ=WEEKLY;BYDAY=${BYDAY[t.weekday]}`)
   return `https://calendar.google.com/calendar/render?${p}`

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { supabase, appUrl } from '@/lib/supabase'
@@ -30,6 +30,19 @@ const info = ref<string | null>(null)
 const next = () => (typeof route.query.next === 'string' && route.query.next.startsWith('/') && !route.query.next.startsWith('//') && !route.query.next.includes('\\') ? route.query.next : '/woche')
 watch(() => auth.loggedIn, (v) => { if (v) router.replace(next()) }, { immediate: true })
 watch(mode, () => { error.value = null; info.value = null })
+
+// Links from Supabase emails land here. An expired/used link comes back with error_code in the URL; a link opened
+// in a different browser than the one used to sign up cannot start a session, but the address IS confirmed.
+onMounted(() => {
+  const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''))
+  const query = new URLSearchParams(window.location.search)
+  const errCode = hash.get('error_code') ?? query.get('error_code')
+  if (errCode) {
+    error.value = errCode === 'otp_expired' ? t('auth.linkInvalid') : t('auth.errors.generic', { msg: hash.get('error_description') ?? query.get('error_description') ?? errCode })
+    return
+  }
+  if (query.get('code')) setTimeout(() => { if (!auth.loggedIn) info.value = t('auth.confirmedLogin') }, 2500)
+})
 
 function explain(e: { code?: string; message: string; status?: number }): string {
   const code = e.code ?? ''

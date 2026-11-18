@@ -72,7 +72,7 @@ async function signupAndLogin(page, u) {
   await page.waitForSelector('h1.title')
   const body = await page.textContent('main')
   ok('activity page shows listed dates, not weekly', body.includes('Aufgeführte Termine') && !body.includes('Wöchentliche Zeiten'))
-  ok('activity page shows organiser link', await page.locator('a:has-text("Seite des Anbieters")').count() > 0)
+  ok('activity page shows organiser link', await page.waitForSelector('a:has-text("Seite des Anbieters")', { timeout: 5000 }).then(() => true, () => false))
   ok('share note says no invitation is sent', body.includes('keine Einladung'))
   ok('anonymous user is asked to log in to plan', body.includes('Melde dich an'))
   await page.goto(`${BASE}/a/00000000-0000-0000-0000-000000000000`)

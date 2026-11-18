@@ -69,6 +69,7 @@ const it: typeof en = {
     loginToPlan: 'Accedi per aggiungerla alla tua settimana.',
     notFound: 'Questa attività non è stata trovata o non è più pubblicata.',
     contentLanguage: 'I dettagli sono mostrati nella lingua dell’organizzatore.',
+    endUnknown: 'Ora di fine non pubblicata. Mostrata come un’ora.',
     noTimes: 'Nessun orario indicato. Chiedi all’organizzatore.',
   },
   auth: {
@@ -81,6 +82,7 @@ const it: typeof en = {
     checkEmail: 'Quasi fatto: abbiamo inviato un link di conferma a {email}. Aprilo per attivare l’account (controlla anche lo spam).',
     maybeExists: 'Questo indirizzo e-mail potrebbe essere già registrato. Prova ad accedere o reimposta la password.',
     linkInvalid: 'Questo link è scaduto o è già stato usato. Richiedine uno nuovo dalla pagina di accesso.',
+    confirmedLogin: 'Ora puoi accedere. Se hai appena confermato la tua e-mail, il tuo indirizzo è verificato.',
     newPassword: 'Nuova password', setPassword: 'Salva la nuova password', passwordUpdated: 'La tua password è stata cambiata.',
     errors: { invalid: 'E-mail o password errata.', notConfirmed: 'Conferma prima il tuo indirizzo e-mail con il link che ti abbiamo inviato.', rateLimit: 'Troppi tentativi. Attendi qualche minuto.', weak: 'Scegli una password di almeno 8 caratteri.', generic: 'Non ha funzionato: {msg}' },
     privacy: 'Salviamo la tua e-mail, il tuo piano settimanale e ciò che inserisci nel profilo, nient’altro. Puoi eliminare l’account in qualsiasi momento.',
