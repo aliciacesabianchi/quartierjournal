@@ -52,4 +52,4 @@ The photos look like they were taken from the organisers' own websites. The prot
 - `public/stock/crafts.webp` (children painting at a table), `movement.webp` (children's yoga), `playground.webp` (wooden playground in autumn). Supplied by the project owner in chat; **photographer, source and licence are not recorded yet.** Two show identifiable children.
 - Used only where an entry has no image of its own, matched by title (`src/domain/stock.ts`), always labelled "Symbolbild / Illustration photo".
 - **Before the official launch:** confirm source and licence (or replace with licensed/own photos), and confirm there are releases for the children shown. To switch all of them off, make `stockFor()` return null.
-- A photo of a café (Fürdich, Schreinerstrasse) was also supplied; not used, because it is a real business and no listing is there.
+- The café photo (`public/stock/cafe-fuerdich.webp`, Guesthouse & Kafi Fürdich) is used for that place only (Orte), added at the owner's request via `supabase/seed/owner_places.sql`. Source/licence of the photo to be confirmed; ideally ask the café.

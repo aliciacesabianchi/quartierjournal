@@ -80,6 +80,7 @@ const mapUrl = (p: Place) => `https://www.openstreetmap.org/search?query=${encod
       <p class="small" aria-live="polite" style="margin: 0">{{ $t('ui.placesPage.count', total) }}</p>
       <ul class="grid">
         <li v-for="p in items" :key="p.id" class="place">
+          <img v-if="p.image_url" :src="p.image_url" alt="" loading="lazy" referrerpolicy="no-referrer" class="pimg" />
           <strong>{{ p.name }}</strong>
           <span class="small muted">{{ [p.kind, f.kreis(p.district_number), p.quartier].filter(Boolean).join(' · ') }}</span>
           <span v-if="p.address" class="small">{{ p.address }}</span>
@@ -100,6 +101,7 @@ const mapUrl = (p: Place) => `https://www.openstreetmap.org/search?query=${encod
 </template>
 
 <style scoped>
+.pimg { width: 100%; height: 130px; object-fit: cover; border-radius: 12px; }
 .grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: 16px; }
 .place { border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px; display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
 .place strong { font-weight: 400; font-size: 18px; }
