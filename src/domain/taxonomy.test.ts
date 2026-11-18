@@ -11,6 +11,7 @@ describe('taxonomy', () => {
     expect(c('Räbeliechtli-Umzug')).toBe('festive/lanterns')
     expect(c('Kinder – Flohmarkt')).toBe('shopping/kidsflea')
     expect(c('Repair Café Heuried')).toBe('shopping/repair')
+    expect(c('Ludothek Zürich 7')).toBe('shopping/ludothek')
     expect(c('Buch-Tausch')).toBe('shopping/booksswap')
     expect(c('Weihnachtsmarkt')).toBe('festive/advent')
     expect(c('Wochenmarkt')).toBe('festive/markets')

@@ -70,11 +70,12 @@ export const RULES: Rule[] = [
   r('culture', 'kidstheatre', /kindertheater|theater|impro/i),
   r('culture', 'picturebooks', /bilderbuch/i),
   r('culture', 'stories', /geschichte|vorlesen|märli|märchen|erzähl|lesung|lesen\b|schreiben|rössli|kniereim|fingerspiel/i),
-  r('culture', 'libraries', /bibliothek|bücherei|\bpbz\b|ludothek|bücherbus/i),
+  r('culture', 'libraries', /bibliothek|bücherei|\bpbz\b|bücherbus/i),
   r('culture', 'museums', /museum|ausstellung|vernissage|finissage|galerie|art friday|kunsthaus/i),
   r('culture', 'tours', /\bführung|rundgang|stadtrundgang/i),
   r('culture', 'film', /kino|film|kinimatograf/i),
   // shopping & second-hand (before festive/meetup so flea markets and swaps land here)
+  r('shopping', 'ludothek', /ludothek|spielzeugausleihe|spielzeug ausleihen/i),
   r('shopping', 'repair', /repair|reparatur|reparier/i),
   r('shopping', 'booksswap', /buch-?tausch|bücherbörse|bücherflohmarkt|bücherschrank|spielzeugtausch|spielzeugbörse/i),
   r('shopping', 'clothesswap', /kleidertausch|kleiderbörse|kleiderbazar|tauschbörse|\bswap\b|tauschmarkt|kleider.*tausch/i),
@@ -112,7 +113,6 @@ export const RULES: Rule[] = [
   r('meetup', 'groups', /begegnung|\bclub\b|frauen|männer|senior|alter\b|zusammen|gemeinsam|together|jass/i),
   r('meetup', 'openmeet', /treff|quartier|stammtisch|nachbar|café|cafe|kafi|kaffee|abend\b|quiz|stand-up|comedy|bar\b/i),
   // play
-  r('play', 'ludothek', /ludothek|spielzeugausleihe/i),
   r('play', 'indoor', /indoor/i),
   r('play', 'playground', /spielplatz|spielhaus|spielwiese/i),
   r('play', 'building', /lego|duplo|konstruier|klötz|bauen|baustelle/i),
