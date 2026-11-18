@@ -1,8 +1,7 @@
--- Migration 3: room for aggregator feed data (Chreis+), more provenance, coverage checks.
+-- Migration 3b: room for aggregator feed data (Chreis+), more provenance, coverage checks.
 -- Additive only: nothing is dropped or rewritten, existing rows keep working.
 
--- A listing page that is NOT confirmed to be the organiser's own page (e.g. the link a feed gives for an event).
-alter type public.source_role add value if not exists 'listing';
+-- (the 'listing' source role is added in the previous migration, 20261118000003_feed_enum.sql)
 
 alter table public.activities
   add column if not exists location_text text,                              -- address text from a feed when no venue is known

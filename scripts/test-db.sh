@@ -17,7 +17,7 @@ fresh_db() {  # creates a database with shim + migrations, prints its URL
   DBS+=("$db")
   local url; url="$(echo "$ADMIN_URL" | sed -E "s#/[^/?]*(\?|$)#/$db\1#")"
   psql "$url" -v ON_ERROR_STOP=1 -q -f supabase/tests/supabase_shim.sql >/dev/null
-  for f in supabase/migrations/*.sql; do psql "$url" -v ON_ERROR_STOP=1 -q -f "$f" >/dev/null; done
+  for f in supabase/migrations/*.sql; do psql "$url" -v ON_ERROR_STOP=1 -q -1 -f "$f" >/dev/null; done
   FRESH_URL="$url"
 }
 

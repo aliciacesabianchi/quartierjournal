@@ -22,9 +22,9 @@ except Exception: mig = None
 if not isinstance(mig, list):
     print('FAIL cannot read the project (token invalid or wrong project ref):', mig_raw[:200]); sys.exit(2)
 names = [m.get('name') for m in mig]
-for want in ('core_schema', 'rls_and_functions', 'feed_data'):
+for want in ('core_schema', 'rls_and_functions', 'feed_enum', 'feed_data'):
     chk('PASS' if want in names else 'FAIL', f'migration applied: {want}')
-extra = [n for n in names if n not in ('core_schema', 'rls_and_functions', 'feed_data')]
+extra = [n for n in names if n not in ('core_schema', 'rls_and_functions', 'feed_enum', 'feed_data')]
 if extra: chk('INFO', 'additional migrations recorded', ', '.join(map(str, extra)))
 a = json.loads(auth_raw)
 site = a.get('site_url') or ''
