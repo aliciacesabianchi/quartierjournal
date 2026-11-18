@@ -19,7 +19,7 @@ const s = reactive({
   onlyConfirmed: route.query.conf === '1',
   kind: (route.query.kind as string) || null as string | null,
 })
-const KINDS = ['Museum', 'Zoo', 'Park', 'Spielplatz']
+const KINDS = ['Museum', 'Zoo', 'Park', 'Spielplatz', 'Ausflugsziel']
 const items = ref<Place[]>([])
 const total = ref(0)
 const loading = ref(false)
