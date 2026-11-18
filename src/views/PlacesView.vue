@@ -17,7 +17,9 @@ const s = reactive({
   q: String(route.query.q ?? ''),
   kreis: route.query.k ? Number(route.query.k) : null as number | null,
   onlyConfirmed: route.query.conf === '1',
+  kind: (route.query.kind as string) || null as string | null,
 })
+const KINDS = ['Museum', 'Zoo', 'Park', 'Spielplatz']
 const items = ref<Place[]>([])
 const total = ref(0)
 const loading = ref(false)
@@ -30,6 +32,7 @@ async function fetchPage(from: number) {
   let q = supabase.from('place_cards').select('*', { count: 'exact' })
   if (s.kreis) q = q.eq('district_number', s.kreis)
   if (s.onlyConfirmed) q = q.eq('verification', 'provider_verified')
+  if (s.kind) q = q.eq('kind', s.kind)
   const term = s.q.trim().replace(/[%,()]/g, ' ')
   if (term) q = q.or(`name.ilike.%${term}%,address.ilike.%${term}%,quartier.ilike.%${term}%`)
   const { data, count, error } = await q.order('info_checked_on', { ascending: false, nullsFirst: false }).order('activity_count', { ascending: false }).order('name').range(from, from + PAGE - 1)
@@ -47,6 +50,7 @@ watch(s, () => {
     if (s.q) query.q = s.q
     if (s.kreis) query.k = String(s.kreis)
     if (s.onlyConfirmed) query.conf = '1'
+    if (s.kind) query.kind = s.kind
     router.replace({ query })
     void fetchPage(0)
   }, 250)
@@ -71,6 +75,10 @@ const mapUrl = (p: Place) => `https://www.openstreetmap.org/search?query=${encod
     <div class="chips" role="group" :aria-label="$t('discover.chooseKreis')">
       <button class="chip" :aria-pressed="s.kreis === null" @click="s.kreis = null">{{ $t('discover.allKreise') }}</button>
       <button v-for="n in 12" :key="n" class="chip" :aria-pressed="s.kreis === n" @click="s.kreis = s.kreis === n ? null : n">{{ n }}</button>
+    </div>
+    <div class="chips" role="group" :aria-label="$t('ui.placeKinds.label')">
+      <button class="chip" :aria-pressed="s.kind === null" @click="s.kind = null">{{ $t('ui.placeKinds.all') }}</button>
+      <button v-for="k in KINDS" :key="k" class="chip" :aria-pressed="s.kind === k" @click="s.kind = s.kind === k ? null : k">{{ $t(`ui.placeKinds.${k}`) }}</button>
     </div>
     <hr class="rule" />
 
@@ -102,6 +110,7 @@ const mapUrl = (p: Place) => `https://www.openstreetmap.org/search?query=${encod
       </ul>
       <p v-if="!loading && !items.length">{{ $t('ui.placesPage.none') }}</p>
       <div v-if="items.length < total" class="more"><button class="btn" :disabled="loading" @click="fetchPage(items.length)">{{ $t('ui.placesPage.more') }} ({{ total - items.length }})</button></div>
+      <p class="tiny muted">{{ $t('ui.placeKinds.attribution') }}</p>
       <p class="tiny muted">{{ $t('ui.disc.attribution') }} <a href="https://chreis.plus" target="_blank" rel="noopener">{{ $t('ui.disc.chreisLink') }}</a></p>
     </template>
   </main>
