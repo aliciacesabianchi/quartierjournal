@@ -2,7 +2,7 @@
 
 Generated from the live catalogue (873 published entries). Empty subcategories are hidden on the site until they have entries; this list is the to-do list for finding more.
 
-No category ("Weitere Angebote", found under "Alle" only): 223
+No category ("Weitere Angebote", found under "Alle" only): 240
 
 ## Baby & Kleinkind — 6
 
@@ -22,20 +22,20 @@ No category ("Weitere Angebote", found under "Alle" only): 223
 - Offener Spielraum: 4
 - Freies Spielen: 2
 
-## Musik & Singen — 134
+## Musik & Singen — 129
 
 - Konzerte: 56
 - Babysingen: 0  ← **no entries yet**
 - Eltern-Kind-Singen: 10
 - Singkreis: 45
 - Instrumentalunterricht: 0  ← **no entries yet**
-- Instrumente entdecken: 9
+- Instrumente entdecken: 4
 - Musik & Rhythmik: 14
 
-## Bewegung & Sport — 47
+## Bewegung & Sport — 46
 
 - Babyschwimmen: 0  ← **no entries yet**
-- Kleinkindschwimmen: 2
+- Kleinkindschwimmen: 1
 - Eltern-Kind-Turnen: 4
 - Zirkus & Akrobatik: 0  ← **no entries yet**
 - Klettern & Bouldern: 0  ← **no entries yet**
@@ -47,7 +47,7 @@ No category ("Weitere Angebote", found under "Alle" only): 223
 - Gymnastik & Turnen: 6
 - Bewegungsspiele: 1
 
-## Basteln & Kreatives — 79
+## Basteln & Kreatives — 80
 
 - Kochen & Backen: 15
 - Ton & Töpfern: 7
@@ -56,9 +56,9 @@ No category ("Weitere Angebote", found under "Alle" only): 223
 - Textiles Gestalten: 1
 - Naturmaterialien: 1
 - Werken & Bauen: 14
-- Basteln: 34
+- Basteln: 35
 
-## Kunst, Geschichten & Theater — 70
+## Kunst, Geschichten & Theater — 65
 
 - Erzähltheater & Kamishibai: 0  ← **no entries yet**
 - Puppen- & Figurentheater: 1
@@ -67,14 +67,14 @@ No category ("Weitere Angebote", found under "Alle" only): 223
 - Bibliotheken: 2
 - Geschichten & Vorlesen: 15
 - Museen & Ausstellungen: 6
-- Familienführungen: 7
+- Familienführungen: 2
 - Kino & Film: 14
 
-## Natur & Tiere — 34
+## Natur & Tiere — 20
 
 - Zoo & Tierpark: 0  ← **no entries yet**
-- Bauernhöfe: 1
-- Tiere kennenlernen: 18
+- Bauernhöfe: 0  ← **no entries yet**
+- Tiere kennenlernen: 5
 - Wald & Natur entdecken: 2
 - Gärtnern: 5
 - Parks & Gärten: 0  ← **no entries yet**
@@ -87,32 +87,32 @@ No category ("Weitere Angebote", found under "Alle" only): 223
 - Samichlaus: 12
 - Advent & Weihnachten: 42
 - Fasnacht: 3
-- Ostern & Frühlingsfeste: 0  ← **no entries yet**
+- Ostern & Frühlingsfeste: 1
 - Sommerfeste: 0  ← **no entries yet**
 - Ernte- & Herbstfeste: 1
 - Märkte: 9
 - Kulturfeste: 5
-- Quartier- & Familienfeste: 7
+- Quartier- & Familienfeste: 6
 
-## Eltern & Betreuung — 39
+## Eltern & Betreuung — 27
 
 - Stillen & Ernährung: 0  ← **no entries yet**
 - Schlaf: 2
-- Babygesundheit & Babymassage: 7
+- Babygesundheit & Babymassage: 0  ← **no entries yet**
 - Erste Hilfe: 0  ← **no entries yet**
-- Familienberatung: 14
+- Familienberatung: 9
 - Betreuung organisieren: 1
 - Angebote für Eltern mit Kinderbetreuung: 2
 - Erziehung & Entwicklung: 5
 - Elternaustausch: 8
 
-## Café & Treff — 111
+## Café & Treff — 130
 
 - Eltern-Kind-Café: 0  ← **no entries yet**
-- Sprach- & Austauschcafés: 5
+- Sprach- & Austauschcafés: 0  ← **no entries yet**
 - Frühstück & Brunch: 2
-- Gemeinsames Mittagessen: 6
+- Gemeinsames Mittagessen: 24
 - Familiencafé: 0  ← **no entries yet**
-- Begegnungsgruppen: 20
-- Offener Quartiertreff: 76
+- Begegnungsgruppen: 24
+- Offener Quartiertreff: 78
 

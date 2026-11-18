@@ -16,6 +16,12 @@ describe('taxonomy', () => {
     expect(c('Geselliges Quartiermittagessen')).toBe('meetup/lunch')
     expect(c('Bilderbuchkino')).toBe('culture/picturebooks')
   })
+  it('does not match inside other words', () => {
+    expect(c('Einführungskurs Lasercutter')).toBeNull()
+    expect(c('Geselliges Quartiermittagessen')).toBe('meetup/lunch')
+    expect(c('Lunch Talk «Kühles Nass?»')).toBe('meetup/lunch')
+    expect(c('Familienführung im Museum')).toBe('culture/museums')
+  })
   it('leaves Kita and registration playgroups uncategorised', () => {
     expect(c('Kita Selnau')).toBeNull()
     expect(c('Spielgruppe Regenbogen')).toBeNull()
