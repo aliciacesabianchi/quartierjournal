@@ -4,7 +4,7 @@ import { computed, ref } from 'vue'
 import { db } from '@/lib/supabase'
 import type { Caregiver, CareBlock, Weekday } from '@/domain/types'
 
-export interface Profile { user_id: string; display_name: string | null; home_district_id: number | null; locale: string }
+export interface Profile { user_id: string; display_name: string | null; home_district_id: number | null; locale: string; email_plan_confirmations?: boolean }
 export interface Child { id: string; nickname: string | null; birth_year: number | null; birth_month: number | null }
 export interface PlanItem { id: string; activity_id: string; template_id: string | null; occurrence_id: string | null; note: string | null }
 export interface Lead { id: string; url: string | null; name: string | null; note: string | null; status: string; created_at: string }
@@ -107,8 +107,17 @@ export const useMe = defineStore('me', () => {
     blocks.value = blocks.value.filter((b) => b.id !== id)
   }
 
-  async function addToPlan(item: { activity_id: string; template_id?: string; occurrence_id?: string }) {
-    plan.value.push(check(await db().from('plan_items').insert(item).select('id, activity_id, template_id, occurrence_id, note').single()))
+  /** Adds to the plan, then asks the email function to send a confirmation to the user's own address (never blocks or fails the add). */
+  async function addToPlan(item: { activity_id: string; template_id?: string; occurrence_id?: string }): Promise<{ emailed: boolean; to?: string }> {
+    const row = check(await db().from('plan_items').insert(item).select('id, activity_id, template_id, occurrence_id, note').single()) as unknown as PlanItem
+    plan.value.push(row)
+    if (profile.value?.email_plan_confirmations === false) return { emailed: false }
+    try {
+      const call = db().functions.invoke('plan-confirmation', { body: { plan_item_id: row.id } })
+      const res = await Promise.race([call, new Promise<null>((r) => setTimeout(() => r(null), 8000))])
+      const d = (res as { data?: { sent?: boolean; to?: string } } | null)?.data
+      return d?.sent ? { emailed: true, to: d.to } : { emailed: false }
+    } catch { return { emailed: false } }
   }
   async function removeFromPlan(id: string) {
     check(await db().from('plan_items').delete().eq('id', id))

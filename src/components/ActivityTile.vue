@@ -21,6 +21,7 @@ const router = useRouter()
 const busy = ref(false)
 const failed = ref<string | null>(null)
 const askLogin = ref(false)
+const sentNote = ref<string | null>(null)
 const expanded = ref(false)
 const showAll = ref(false)
 const todayIso = todayInZurich()
@@ -57,7 +58,7 @@ async function addToPlan() {
   if (!auth.loggedIn) { askLogin.value = !askLogin.value; return }
   if (planned.value || slots.value.length !== 1) return router.push({ name: 'activity', params: { id: props.a.id } })
   busy.value = true
-  try { await me.addToPlan({ activity_id: props.a.id, ...slots.value[0]! }) }
+  try { const r = await me.addToPlan({ activity_id: props.a.id, ...slots.value[0]! }); if (r.emailed) { sentNote.value = t('ui.plan.emailSent', { email: r.to ?? '' }); setTimeout(() => { sentNote.value = null }, 8000) } }
   catch (e) { failed.value = t('auth.errors.generic', { msg: (e as Error).message }) }
   finally { busy.value = false }
 }
@@ -152,6 +153,7 @@ async function share() {
           <button class="linkbtn tiny" @click="askLogin = false">{{ $t('ui.plan.notNow') }}</button>
         </div>
       </div>
+      <p v-if="sentNote" class="tiny" role="status" style="margin: 0">✉ {{ sentNote }}</p>
       <p v-if="failed" class="tiny err" role="alert">{{ failed }}</p>
     </div>
   </article>

@@ -18,14 +18,14 @@ const f = useFormat()
 const router = useRouter()
 cat.load()
 
-const form = reactive({ display_name: '', home_district_id: null as number | null, locale: 'de' })
-watch(() => me.profile, (p) => { if (p) Object.assign(form, { display_name: p.display_name ?? '', home_district_id: p.home_district_id, locale: p.locale }) }, { immediate: true })
+const form = reactive({ display_name: '', home_district_id: null as number | null, locale: 'de', email_plan_confirmations: true })
+watch(() => me.profile, (p) => { if (p) Object.assign(form, { display_name: p.display_name ?? '', home_district_id: p.home_district_id, locale: p.locale, email_plan_confirmations: p.email_plan_confirmations !== false }) }, { immediate: true })
 
 const msg = ref<{ kind: 'ok' | 'error'; text: string } | null>(null)
 async function save() {
   msg.value = null
   try {
-    await me.updateProfile({ display_name: form.display_name.trim() || null, home_district_id: form.home_district_id, locale: form.locale })
+    await me.updateProfile({ display_name: form.display_name.trim() || null, home_district_id: form.home_district_id, locale: form.locale, email_plan_confirmations: form.email_plan_confirmations })
     setLocale(form.locale as Locale)
     msg.value = { kind: 'ok', text: t('common.saved') }
   } catch (e) { msg.value = { kind: 'error', text: t('auth.errors.generic', { msg: (e as Error).message }) } }
@@ -103,6 +103,7 @@ async function deleteAccount() {
           <label class="field"><span>{{ $t('profile.language') }}</span>
             <select v-model="form.locale" class="input pill"><option v-for="l in LOCALES" :key="l" :value="l">{{ LOCALE_LABELS[l] }}</option></select>
           </label>
+          <label class="row small" style="gap: 8px"><input v-model="form.email_plan_confirmations" type="checkbox" /> <span>{{ $t('ui.plan.emailPref') }}</span></label>
           <div v-if="msg" class="notice" :class="msg.kind" role="status">{{ msg.text }}</div>
           <div><button class="btn primary">{{ $t('common.save') }}</button></div>
         </form>
