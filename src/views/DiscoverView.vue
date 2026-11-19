@@ -5,7 +5,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useCatalogue } from '@/stores/catalogue'
 import { useAuth } from '@/stores/auth'
 import { useMe } from '@/stores/me'
-import { emptyFilters, fitsFreeTime, isEnded, isVerified, matches, sortCards, type DiscoverFilters } from '@/domain/filters'
+import { emptyFilters, fitsFreeTime, isEnded, isVerified, matches, mixCategories, sortCards, type DiscoverFilters } from '@/domain/filters'
 import { todayInZurich } from '@/domain/time'
 import type { Weekday } from '@/domain/types'
 import { useFormat } from '@/composables/useFormat'
@@ -87,7 +87,8 @@ const verifiedCount = computed(() => live.value.filter(isVerified).length)
 const results = computed(() => {
   const out = cat.cards.filter((a) => matches(a, s, me.favourites, today))
   const fitted = s.fit && hasSchedule.value ? out.filter((a) => fitsFreeTime(a, me.blocks, me.selfIds)) : out
-  return sortCards(fitted)
+  const sorted = sortCards(fitted)
+  return s.category || s.subcategory ? sorted : mixCategories(sorted)
 })
 // entries that a filter hides only because a detail is unknown: say so, and offer to show them
 const hiddenNoKreis = computed(() => (s.districts.length && !s.includeUnknownKreis

@@ -1,6 +1,6 @@
 import { computed } from 'vue'
 import { useCatalogue } from '@/stores/catalogue'
-import { activitySlots } from '@/domain/filters'
+import { activitySlots, mixCategories } from '@/domain/filters'
 import { addDays, isoWeekday, toMinutes, todayInZurich } from '@/domain/time'
 import type { ActivityCard } from '@/domain/types'
 
@@ -30,12 +30,12 @@ export function useDayIdeas(limit = 3, confirmedOnly = true) {
     const forDate = (date: string) =>
       pool().map((a) => ({ a, s: startOn(a, date) })).filter((x) => x.s !== null).sort((x, y) => x.s! - y.s!).map((x) => x.a)
     const t0 = forDate(today)
-    if (t0.length) return { key: 'onToday', cards: t0.slice(0, limit) }
+    if (t0.length) return { key: 'onToday', cards: mixCategories(t0).slice(0, limit) }
     const t1 = forDate(addDays(today, 1))
-    if (t1.length) return { key: 'onTomorrow', cards: t1.slice(0, limit) }
+    if (t1.length) return { key: 'onTomorrow', cards: mixCategories(t1).slice(0, limit) }
     const next = pool()
       .map((a) => ({ a, d: a.upcoming.find((o) => o.date >= today && o.status !== 'cancelled')?.date }))
       .filter((x) => x.d).sort((x, y) => x.d!.localeCompare(y.d!)).map((x) => x.a)
-    return { key: 'onNext', cards: (next.length ? next : pool().filter((a) => activitySlots(a).length)).slice(0, limit) }
+    return { key: 'onNext', cards: mixCategories(next.length ? next : pool().filter((a) => activitySlots(a).length)).slice(0, limit) }
   })
 }

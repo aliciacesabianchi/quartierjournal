@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { ActivityCard } from './types'
-import { ageMatches, emptyFilters, fitsFreeTime, isEnded, matches, occursBetween, sortCards } from './filters'
+import { ageMatches, emptyFilters, fitsFreeTime, isEnded, matches, mixCategories, occursBetween, publicNote, sortCards } from './filters'
 import { buildIcs, fold, escapeText, googleCalendarUrl } from './ics'
 import { addDays, isoWeekday, nextDateForWeekday, todayInZurich, weekdayName, ageInMonths } from './time'
 import { normaliseUrl, whatsappUrl } from './share'
@@ -175,5 +175,25 @@ describe('share', () => {
   })
   it('encodes WhatsApp text', () => {
     expect(whatsappUrl('a b&c')).toBe('https://wa.me/?text=a%20b%26c')
+  })
+})
+
+describe('mixCategories', () => {
+  it('takes one entry from each category in turn and keeps the order inside a category', () => {
+    const c = (id: string, title: string) => card({ id, title, category: null })
+    const list = [c('a1', 'Konzert A'), c('a2', 'Konzert B'), c('a3', 'Adventskonzert'), c('b1', 'Basteln 1'), c('c1', 'Yoga')]
+    const ids = mixCategories(list).map((x) => x.id)
+    expect(ids.slice(0, 3)).toEqual(['a1', 'b1', 'c1'])
+    expect(ids).toHaveLength(5)
+    expect(ids.filter((x) => x.startsWith('a'))).toEqual(['a1', 'a2', 'a3'])
+  })
+})
+
+describe('publicNote', () => {
+  it('drops internal review remarks but keeps the rest', () => {
+    expect(publicNote('Verified date 27 November. Recurs Fridays except holidays; 20 November body/header discrepancy retained for review.')).toBe('Verified date 27 November.')
+    expect(publicNote('Recurs Fridays except holidays.')).toBe('Recurs Fridays except holidays.')
+    expect(publicNote('Body/header discrepancy retained for review.')).toBeNull()
+    expect(publicNote(null)).toBeNull()
   })
 })

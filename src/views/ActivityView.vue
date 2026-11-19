@@ -10,6 +10,7 @@ import { buildIcs, googleCalendarUrl, type IcsItem } from '@/domain/ics'
 import { todayInZurich } from '@/domain/time'
 import { downloadIcs, icsLabels } from '@/lib/calendar'
 import { tileFor } from '@/domain/taxonomy'
+import { publicNote } from '@/domain/filters'
 import SceneArt from '@/components/SceneArt.vue'
 import type { ActivityCard } from '@/domain/types'
 import ShareBox from '@/components/ShareBox.vue'
@@ -78,7 +79,7 @@ async function add(item: { template_id?: string; occurrence_id?: string }) {
     <article v-else class="detail">
       <div class="hero card">
         <img v-if="a.image_url && imgOk" :src="a.image_url" alt="" referrerpolicy="no-referrer" class="heroimg" @error="imgOk = false" />
-        <img v-else-if="theme" :src="`/labels/${locale}/${theme.slug}.webp`" :alt="$t(theme.labelKey)" class="heroimg" />
+        <img v-else-if="theme" :src="`/labels/${locale}/${theme.slug}.webp`" :alt="$t(theme.labelKey)" class="heroimg tilepic" />
         <SceneArt v-else :seed="a.id" :label="$t('card.noImage')" />
         <a v-if="a.image_url && imgOk" :href="a.image_source_url || a.image_url" target="_blank" rel="noopener noreferrer" class="credit">{{ $t('ui.tile.image', { host: a.image_credit || '' }) }}</a>
       </div>
@@ -140,7 +141,7 @@ async function add(item: { template_id?: string; occurrence_id?: string }) {
           <dt>{{ $t('activity.ages') }}</dt><dd>{{ f.age(a) }}</dd>
           <dt>{{ $t('activity.price') }}</dt><dd>{{ f.price(a) }}</dd>
           <dt>{{ $t('activity.registration') }}</dt><dd>{{ $t(`card.reg.${a.registration}`) }}<span v-if="a.registration_text && a.registration_text.toLowerCase() !== 'unknown'" class="muted"> ({{ a.registration_text }})</span></dd>
-          <template v-if="a.schedule_notes"><dt>{{ $t('activity.notes') }}</dt><dd>{{ a.schedule_notes }}</dd></template>
+          <template v-if="publicNote(a.schedule_notes)"><dt>{{ $t('activity.notes') }}</dt><dd>{{ publicNote(a.schedule_notes) }}</dd></template>
           <dt>{{ $t('activity.where') }}</dt><dd>{{ [a.venue_name || a.location_text, a.address, a.quartier, f.kreis(a.district_number)].filter(Boolean).join(', ') || $t('ui.tile.noPlace') }}</dd>
         </dl>
         <p class="tiny muted">{{ $t('activity.contentLanguage') }}</p>
@@ -165,6 +166,7 @@ async function add(item: { template_id?: string; occurrence_id?: string }) {
 <style scoped>
 .detail { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); gap: clamp(20px, 4vw, 48px); align-items: start; }
 .hero { aspect-ratio: 10 / 7; position: sticky; top: 16px; overflow: hidden; }
+.tilepic { object-position: left bottom; }
 .heroimg { width: 100%; height: 100%; object-fit: cover; display: block; }
 .credit { position: absolute; left: 10px; bottom: 10px; background: rgba(255,255,255,.9); border-radius: var(--pill); padding: 3px 10px; font-size: 12px; color: var(--ink); }
 .title { font-size: clamp(34px, 6vw, 60px); }

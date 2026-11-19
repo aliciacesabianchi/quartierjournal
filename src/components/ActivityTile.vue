@@ -7,6 +7,7 @@ import { useFormat } from '@/composables/useFormat'
 import { useAuth } from '@/stores/auth'
 import { useMe } from '@/stores/me'
 import { appUrl } from '@/lib/supabase'
+import { publicNote } from '@/domain/filters'
 import { shareText, whatsappUrl } from '@/domain/share'
 import { todayInZurich } from '@/domain/time'
 import { tileFor } from '@/domain/taxonomy'
@@ -28,6 +29,7 @@ const sourceUrl = computed(() => props.a.organiser_url || props.a.listing_url)
 const imgOk = ref(true)
 const theme = computed(() => tileFor(props.a))
 const fromChreis = computed(() => props.a.data_origin === 'feed:chreis')
+const note = computed(() => publicNote(props.a.schedule_notes))
 const fav = computed(() => me.favourites.has(props.a.id))
 const planned = computed(() => me.plan.some((p) => p.activity_id === props.a.id))
 const link = computed(() => `${appUrl()}/a/${props.a.id}`)
@@ -62,7 +64,7 @@ async function share() {
   <article class="tile">
     <div class="ph" aria-hidden="false">
       <img v-if="a.image_url && imgOk" :src="a.image_url" alt="" loading="lazy" referrerpolicy="no-referrer" class="pic" @error="imgOk = false" />
-      <img v-else-if="theme" :src="`/labels/${locale}/${theme.slug}.webp`" :alt="$t(theme.labelKey)" loading="lazy" class="pic" />
+      <img v-else-if="theme" :src="`/labels/${locale}/${theme.slug}.webp`" :alt="$t(theme.labelKey)" loading="lazy" class="pic tilepic" />
       <span v-if="!confirmed" class="flag">{{ fromChreis ? $t('ui.tile.unconfirmed') : $t('ui.tile.notChecked') }}</span>
       <span v-if="a.image_url && imgOk" class="credit">{{ $t('ui.tile.image', { host: a.image_credit || '' }) }}</span>
       <svg v-if="!(a.image_url && imgOk) && !theme" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="1.8"/><path d="M4 18l5-5 4 4 3-3 4 4"/></svg>
@@ -86,7 +88,7 @@ async function share() {
         <span>{{ place || $t('ui.tile.noPlace') }}<template v-if="a.district_number">, {{ f.kreis(a.district_number) }}</template></span>
       </div>
       <div class="small">{{ f.price(a) }} · {{ f.age(a) }}</div>
-      <div v-if="a.schedule_notes" class="tiny muted note">{{ a.schedule_notes }}</div>
+      <div v-if="note" class="tiny muted note">{{ note }}</div>
       <div class="small reg">
         <span>{{ $t(`card.reg.${a.registration}`) }}</span>
         <template v-if="sourceUrl"> · <a :href="sourceUrl" target="_blank" rel="noopener">{{ a.organiser_url ? $t('card.organiser') : $t('ui.tile.source') }}</a></template>
@@ -106,6 +108,7 @@ async function share() {
 .tile { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 20px; overflow: hidden; background: #fff; }
 .ph { position: relative; height: 170px; background: #e8e6e1; border-bottom: 1px dashed #cfcac2; color: #6b6963; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 0 16px; text-align: center; font-size: 13px; }
 .ph span { overflow-wrap: anywhere; }
+.tilepic { object-position: left bottom; }
 .pic { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .credit { position: absolute; left: 8px; bottom: 8px; background: rgba(255,255,255,.88); border-radius: var(--pill); padding: 2px 8px; font-size: 11px; color: var(--ink); }
 .flag { z-index: 1; position: absolute; left: 12px; top: 12px; max-width: calc(100% - 70px); background: #fff; border-radius: var(--pill); padding: 4px 10px; font-size: 12px; color: var(--ink); text-align: left; }

@@ -145,3 +145,26 @@ export function sortCards(cards: ActivityCard[]): ActivityCard[] {
   return [...cards].sort((x, y) =>
     Number(!isVerified(x)) - Number(!isVerified(y)) || firstDate(x).localeCompare(firstDate(y)) || x.title.localeCompare(y.title, 'de'))
 }
+
+/** Mixes the categories: takes one entry from each main category in turn, so a list without a category filter shows a bit of everything.
+ *  The order inside each category is kept (so confirmed / sooner entries still come first), and categories with entries ranked highest start. */
+export function mixCategories(cards: ActivityCard[]): ActivityCard[] {
+  const buckets = new Map<string, ActivityCard[]>()
+  for (const a of cards) {
+    const k = classify(a)?.main ?? '_none'
+    if (!buckets.has(k)) buckets.set(k, [])
+    buckets.get(k)!.push(a)
+  }
+  const lists = [...buckets.values()]
+  const out: ActivityCard[] = []
+  for (let i = 0; out.length < cards.length; i++) for (const l of lists) if (i < l.length) out.push(l[i]!)
+  return out
+}
+
+const INTERNAL_NOTE = /discrepan|retained for review|body\/header|\bfor review\b|needs? review|\binternal\b|\bTODO\b|\bTBD\b/i
+/** Notes come from imported data; sentences that are internal review remarks are not shown to visitors. */
+export function publicNote(text: string | null | undefined): string | null {
+  if (!text) return null
+  const kept = text.split(/(?<=[.!?])\s+/).filter((x) => !INTERNAL_NOTE.test(x)).join(' ').trim()
+  return kept || null
+}
