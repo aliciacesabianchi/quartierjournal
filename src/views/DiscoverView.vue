@@ -33,8 +33,8 @@ function fromQuery(): DiscoverFilters & { fit: boolean } {
     weekday: num(q.d) as Weekday | null,
     timeOfDay: (q.t === 'am' || q.t === 'pm' ? q.t : null),
     childAgeMonths: num(q.age),
-    category: (q.c as string) || null,
-    subcategory: (q.sc as string) || null,
+    categories: String(q.c ?? '').split(',').filter(Boolean),
+    subcategories: String(q.sc ?? '').split(',').filter(Boolean),
     freeOnly: q.free === '1',
     noRegistration: q.noreg === '1',
     forCaregiver: (q.for === 'caregiver' || q.for === 'child' ? q.for : 'all'),
@@ -58,8 +58,8 @@ watch(s, () => {
   if (s.weekday) q.d = String(s.weekday)
   if (s.timeOfDay) q.t = s.timeOfDay
   if (s.childAgeMonths != null) q.age = String(s.childAgeMonths)
-  if (s.category) q.c = s.category
-  if (s.subcategory) q.sc = s.subcategory
+  if (s.categories.length) q.c = s.categories.join(',')
+  if (s.subcategories.length) q.sc = s.subcategories.join(',')
   if (s.freeOnly) q.free = '1'
   if (s.noRegistration) q.noreg = '1'
   if (s.forCaregiver !== 'all') q.for = s.forCaregiver
@@ -88,7 +88,7 @@ const results = computed(() => {
   const out = cat.cards.filter((a) => matches(a, s, me.favourites, today))
   const fitted = s.fit && hasSchedule.value ? out.filter((a) => fitsFreeTime(a, me.blocks, me.selfIds)) : out
   const sorted = sortCards(fitted)
-  return s.category || s.subcategory ? sorted : mixCategories(sorted)
+  return s.categories.length === 1 || s.subcategories.length ? sorted : mixCategories(sorted)
 })
 // entries that a filter hides only because a detail is unknown: say so, and offer to show them
 const hiddenNoKreis = computed(() => (s.districts.length && !s.includeUnknownKreis
@@ -96,8 +96,9 @@ const hiddenNoKreis = computed(() => (s.districts.length && !s.includeUnknownKre
 const hiddenNoAge = computed(() => (s.childAgeMonths != null && !s.includeUnknownAge
   ? cat.cards.filter((a) => matches(a, { ...s, includeUnknownAge: true }, me.favourites, today)).length - results.value.length : 0))
 
-// category chips: counts reflect all other filters, so a chip never promises more than it delivers
-const forCounts = computed(() => cat.cards.filter((a) => matches(a, { ...s, category: null, subcategory: null }, me.favourites, today)))
+// category panel (collapsed by default): several categories can be selected; counts reflect all other filters
+const catsOpen = ref(s.categories.length > 0)
+const forCounts = computed(() => cat.cards.filter((a) => matches(a, { ...s, categories: [], subcategories: [] }, me.favourites, today)))
 const mainCounts = computed(() => {
   const m = new Map<string, number>()
   for (const a of forCounts.value) { const c = classify(a); if (c) m.set(c.main, (m.get(c.main) ?? 0) + 1) }
@@ -105,13 +106,19 @@ const mainCounts = computed(() => {
 })
 const subCounts = computed(() => {
   const m = new Map<string, number>()
-  if (!s.category) return m
-  for (const a of forCounts.value) { const c = classify(a); if (c?.main === s.category && c.sub) m.set(c.sub, (m.get(c.sub) ?? 0) + 1) }
+  for (const a of forCounts.value) { const c = classify(a); if (c?.sub && s.categories.includes(c.main)) m.set(c.sub, (m.get(c.sub) ?? 0) + 1) }
   return m
 })
-const shownSubs = computed(() => (s.category ? subsOf(s.category as Main).filter((x) => (subCounts.value.get(x) ?? 0) > 0) : []))
-const shownMains = computed(() => MAINS.filter((m) => (mainCounts.value.get(m) ?? 0) > 0 || s.category === m))
-function pickMain(m: string | null) { s.category = s.category === m ? null : m; s.subcategory = null }
+const shownMains = computed(() => MAINS.filter((m) => (mainCounts.value.get(m) ?? 0) > 0 || s.categories.includes(m)))
+const subsFor = (m: string) => subsOf(m as Main).filter((x) => (subCounts.value.get(x) ?? 0) > 0)
+function toggleMain(m: string) {
+  if (s.categories.includes(m)) {
+    s.categories = s.categories.filter((x) => x !== m)
+    s.subcategories = s.subcategories.filter((x) => !subsOf(m as Main).includes(x))
+  } else s.categories = [...s.categories, m]
+}
+const toggleSub = (x: string) => { s.subcategories = s.subcategories.includes(x) ? s.subcategories.filter((y) => y !== x) : [...s.subcategories, x] }
+function clearCats() { s.categories = []; s.subcategories = [] }
 
 function toggleDistrict(n: number) {
   s.districts = s.districts.includes(n) ? s.districts.filter((x) => x !== n) : [...s.districts, n].sort((a, b) => a - b)
@@ -132,6 +139,10 @@ const ageLabel = (m: number) => (m < 12 ? 'discover.ageMonths' : null)
     <div class="row">
       <label class="sr-only" for="q">{{ $t('discover.search') }}</label>
       <input id="q" v-model.trim="s.q" type="search" class="input pill" :placeholder="$t('discover.search')" style="flex: 1 1 260px; max-width: 560px" />
+      <button class="btn" :aria-expanded="catsOpen" aria-controls="cats" @click="catsOpen = !catsOpen">
+        {{ $t('discover.category') }}
+        <span v-if="s.categories.length" class="count">{{ s.categories.length }}</span>
+      </button>
       <button class="btn" :aria-expanded="filtersOpen" aria-controls="filters" @click="filtersOpen = !filtersOpen">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>
         {{ $t('discover.filters') }}
@@ -150,14 +161,18 @@ const ageLabel = (m: number) => (m < 12 ? 'discover.ageMonths' : null)
       <button class="chip" :aria-pressed="s.scope === 'verified'" @click="s.scope = 'verified'">{{ $t('ui.disc.scopeVerified') }} ({{ verifiedCount }})</button>
     </div>
 
-    <div class="chips cats" role="group" :aria-label="$t('discover.category')">
-      <button class="chip" :aria-pressed="!s.category" @click="pickMain(null)">{{ $t('discover.allCategories') }}</button>
-      <button v-for="m in shownMains" :key="m" class="chip" :aria-pressed="s.category === m" @click="pickMain(m)">{{ $t(`tax.main.${m}`) }} ({{ mainCounts.get(m) ?? 0 }})</button>
-    </div>
-    <div v-if="s.category && shownSubs.length" class="chips subs" role="group" :aria-label="$t(`tax.main.${s.category}`)">
-      <button class="chip small" :aria-pressed="!s.subcategory" @click="s.subcategory = null">{{ $t('discover.allCategories') }}</button>
-      <button v-for="x in shownSubs" :key="x" class="chip small" :aria-pressed="s.subcategory === x" @click="s.subcategory = s.subcategory === x ? null : x">{{ $t(`tax.sub.${x}`) }} ({{ subCounts.get(x) ?? 0 }})</button>
-    </div>
+    <section v-show="catsOpen" id="cats" class="panel stack">
+      <div class="chips" role="group" :aria-label="$t('discover.category')">
+        <button class="chip" :aria-pressed="!s.categories.length" @click="clearCats">{{ $t('discover.allCategories') }}</button>
+        <button v-for="m in shownMains" :key="m" class="chip" :aria-pressed="s.categories.includes(m)" @click="toggleMain(m)">{{ $t(`tax.main.${m}`) }} ({{ mainCounts.get(m) ?? 0 }})</button>
+      </div>
+      <template v-for="m in s.categories" :key="m">
+        <div v-if="subsFor(m).length" class="chips subs" role="group" :aria-label="$t(`tax.main.${m}`)">
+          <span class="tiny muted">{{ $t(`tax.main.${m}`) }}:</span>
+          <button v-for="x in subsFor(m)" :key="x" class="chip small" :aria-pressed="s.subcategories.includes(x)" @click="toggleSub(x)">{{ $t(`tax.sub.${x}`) }} ({{ subCounts.get(x) ?? 0 }})</button>
+        </div>
+      </template>
+    </section>
 
     <section v-show="filtersOpen" id="filters" class="panel stack">
       <fieldset class="kreise">

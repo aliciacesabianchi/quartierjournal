@@ -197,3 +197,23 @@ describe('publicNote', () => {
     expect(publicNote(null)).toBeNull()
   })
 })
+
+describe('multi-select categories', () => {
+  const c = (title: string) => card({ id: title, title, category: null })
+  const f = (over: Partial<ReturnType<typeof emptyFilters>>) => ({ ...emptyFilters(), ...over })
+  it('matches any of the selected main categories', () => {
+    const fl = f({ categories: ['music', 'creative'] })
+    expect(matches(c('Adventskonzert'), fl, new Set())).toBe(true)
+    expect(matches(c('Basteln'), fl, new Set())).toBe(true)
+    expect(matches(c('Yoga'), fl, new Set())).toBe(false)
+  })
+  it('a subcategory narrows only its own main category', () => {
+    const fl = f({ categories: ['music', 'creative'], subcategories: ['concerts'] })
+    expect(matches(c('Adventskonzert'), fl, new Set())).toBe(true)
+    expect(matches(c('Eltern-Kind-Singen'), fl, new Set())).toBe(false)
+    expect(matches(c('Basteln'), fl, new Set())).toBe(true)
+  })
+  it('no selection shows everything classified or not', () => {
+    expect(matches(c('Irgendetwas'), f({}), new Set())).toBe(true)
+  })
+})

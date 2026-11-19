@@ -1,5 +1,5 @@
 import type { ActivityCard, CareBlock, Weekday } from './types'
-import { classify } from './taxonomy'
+import { classify, mainOfSub } from './taxonomy'
 import { addDays, isoWeekday, toMinutes } from './time'
 
 export interface DiscoverFilters {
@@ -8,8 +8,8 @@ export interface DiscoverFilters {
   weekday: Weekday | null
   timeOfDay: 'am' | 'pm' | null
   childAgeMonths: number | null
-  category: string | null       // main category (taxonomy.ts)
-  subcategory: string | null
+  categories: string[]          // main categories (taxonomy.ts); empty = all
+  subcategories: string[]       // narrows only the main category it belongs to
   freeOnly: boolean
   noRegistration: boolean
   forCaregiver: 'all' | 'caregiver' | 'child'
@@ -24,7 +24,7 @@ export interface DiscoverFilters {
 }
 
 export const emptyFilters = (): DiscoverFilters => ({
-  q: '', districts: [], weekday: null, timeOfDay: null, childAgeMonths: null, category: null, subcategory: null,
+  q: '', districts: [], weekday: null, timeOfDay: null, childAgeMonths: null, categories: [], subcategories: [],
   freeOnly: false, noRegistration: false, forCaregiver: 'all', favouritesOnly: false,
   scope: 'all', when: 'any', includeUnknownAge: false, includeUnknownKreis: false,
 })
@@ -93,10 +93,13 @@ export function matches(a: ActivityCard, f: DiscoverFilters, favourites: Set<str
   if (f.districts.length) {
     if (a.district_number == null ? !f.includeUnknownKreis : !f.districts.includes(a.district_number)) return false
   }
-  if (f.category || f.subcategory) {
+  if (f.categories.length || f.subcategories.length) {
     const c = classify(a)
-    if (f.category && c?.main !== f.category) return false
-    if (f.subcategory && c?.sub !== f.subcategory) return false
+    if (!c) return false
+    // a selected subcategory narrows its own main category; the other selected main categories stay whole
+    const subsHere = f.subcategories.filter((x) => mainOfSub(x) === c.main)
+    if (subsHere.length) { if (!c.sub || !subsHere.includes(c.sub)) return false }
+    else if (f.categories.length && !f.categories.includes(c.main)) return false
   }
   if (f.freeOnly && a.is_free !== true) return false
   if (f.noRegistration && a.registration !== 'not_required') return false

@@ -153,3 +153,5 @@ export function tileFor(a: Pick<ActivityCard, 'title' | 'category' | 'image_url'
 }
 
 export const subsOf = (main: Main): string[] => RULES.filter((x) => x.main === main).map((x) => x.sub)
+
+export const mainOfSub = (sub: string): Main | undefined => RULES.find((x) => x.sub === sub)?.main
