@@ -25,7 +25,7 @@ const msg = ref<{ kind: 'ok' | 'error'; text: string } | null>(null)
 async function save() {
   msg.value = null
   try {
-    await me.updateProfile({ display_name: form.display_name.trim() || null, home_district_id: form.home_district_id, locale: form.locale, email_plan_confirmations: form.email_plan_confirmations })
+    await me.updateProfile({ display_name: form.display_name.trim() || null, home_district_id: form.home_district_id, locale: form.locale, ...(form.email_plan_confirmations !== (me.profile?.email_plan_confirmations !== false) ? { email_plan_confirmations: form.email_plan_confirmations } : {}) })
     setLocale(form.locale as Locale)
     msg.value = { kind: 'ok', text: t('common.saved') }
   } catch (e) { msg.value = { kind: 'error', text: t('auth.errors.generic', { msg: (e as Error).message }) } }
