@@ -28,6 +28,7 @@ const error = ref<string | null>(null)
 const info = ref<string | null>(null)
 
 const next = () => (typeof route.query.next === 'string' && route.query.next.startsWith('/') && !route.query.next.startsWith('//') && !route.query.next.includes('\\') ? route.query.next : '/woche')
+const planHint = computed(() => next().startsWith('/a/'))
 watch(() => auth.loggedIn, (v) => { if (v) router.replace(next()) }, { immediate: true })
 watch(mode, () => { error.value = null; info.value = null })
 
@@ -101,6 +102,10 @@ async function googleLogin() {
 <template>
   <main id="main" class="wrap narrow">
     <h1 class="h1">{{ mode === 'signup' ? $t('auth.signupTitle') : mode === 'reset' ? $t('auth.resetTitle') : $t('auth.loginTitle') }}</h1>
+    <p v-if="planHint" class="notice" role="note">
+      {{ $t('ui.plan.loginHint') }}
+      <RouterLink :to="next()">{{ $t('ui.plan.backToEvent') }}</RouterLink>
+    </p>
     <div v-if="!supabase" class="notice error">{{ $t('config.missing') }}</div>
     <form class="stack" @submit.prevent="submit">
       <label class="field"><span>{{ $t('auth.email') }}</span>

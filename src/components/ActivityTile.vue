@@ -20,6 +20,9 @@ const me = useMe()
 const router = useRouter()
 const busy = ref(false)
 const failed = ref<string | null>(null)
+const askLogin = ref(false)
+const loginTo = computed(() => ({ name: 'login' as const, query: { next: `/a/${props.a.id}` } }))
+const signupTo = computed(() => ({ name: 'login' as const, query: { next: `/a/${props.a.id}`, mode: 'signup' } }))
 
 const when = computed(() => f.templateSummary(props.a.templates) ?? f.nextDate(props.a))
 const confirmed = computed(() => props.a.verification === 'provider_verified')
@@ -45,7 +48,7 @@ const slots = computed(() => {
 
 async function addToPlan() {
   failed.value = null
-  if (!auth.loggedIn) return router.push({ name: 'login', query: { next: `/a/${props.a.id}` } })
+  if (!auth.loggedIn) { askLogin.value = !askLogin.value; return }
   if (planned.value || slots.value.length !== 1) return router.push({ name: 'activity', params: { id: props.a.id } })
   busy.value = true
   try { await me.addToPlan({ activity_id: props.a.id, ...slots.value[0]! }) }
@@ -63,6 +66,7 @@ async function share() {
 <template>
   <article class="tile">
     <div class="ph" aria-hidden="false">
+      <RouterLink :to="{ name: 'activity', params: { id: a.id } }" class="phlink" :aria-label="a.title" tabindex="-1" />
       <img v-if="a.image_url && imgOk" :src="a.image_url" alt="" loading="lazy" referrerpolicy="no-referrer" class="pic" @error="imgOk = false" />
       <img v-else-if="theme" :src="`/labels/${locale}/${theme.slug}.webp`" :alt="$t(theme.labelKey)" loading="lazy" class="pic tilepic" />
       <span v-if="!confirmed" class="flag">{{ fromChreis ? $t('ui.tile.unconfirmed') : $t('ui.tile.notChecked') }}</span>
@@ -99,6 +103,16 @@ async function share() {
         </button>
         <button class="btn small" @click="share">{{ $t('activity.share') }}</button>
       </div>
+      <div v-if="askLogin && !auth.loggedIn" class="ask" role="dialog" :aria-label="$t('ui.plan.askTitle')">
+        <strong>{{ $t('ui.plan.askTitle') }}</strong>
+        <p class="tiny" style="margin: 4px 0 8px">{{ $t('ui.plan.askBody') }}</p>
+        <div class="row">
+          <RouterLink :to="loginTo" class="btn small primary">{{ $t('ui.plan.login') }}</RouterLink>
+          <RouterLink :to="signupTo" class="btn small">{{ $t('ui.plan.signup') }}</RouterLink>
+          <RouterLink :to="{ name: 'activity', params: { id: a.id } }" class="btn small">{{ $t('ui.plan.view') }}</RouterLink>
+          <button class="linkbtn tiny" @click="askLogin = false">{{ $t('ui.plan.notNow') }}</button>
+        </div>
+      </div>
       <p v-if="failed" class="tiny err" role="alert">{{ failed }}</p>
     </div>
   </article>
@@ -111,8 +125,10 @@ async function share() {
 .tilepic { object-position: left bottom; }
 .pic { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .credit { position: absolute; left: 8px; bottom: 8px; background: rgba(255,255,255,.88); border-radius: var(--pill); padding: 2px 8px; font-size: 11px; color: var(--ink); }
-.flag { z-index: 1; position: absolute; left: 12px; top: 12px; max-width: calc(100% - 70px); background: #fff; border-radius: var(--pill); padding: 4px 10px; font-size: 12px; color: var(--ink); text-align: left; }
-.fav { z-index: 1; position: absolute; right: 12px; top: 12px; width: 38px; height: 38px; border-radius: 50%; border: 0; background: #fff; color: var(--ink); font-size: 19px; cursor: pointer; line-height: 1; }
+.phlink { position: absolute; inset: 0; z-index: 1; }
+.ask { border: 1px solid var(--line); border-radius: 14px; padding: 12px; background: var(--yellow-soft, #fffbe8); }
+.flag { z-index: 2; pointer-events: none; position: absolute; left: 12px; top: 12px; max-width: calc(100% - 70px); background: #fff; border-radius: var(--pill); padding: 4px 10px; font-size: 12px; color: var(--ink); text-align: left; }
+.fav { z-index: 2; position: absolute; right: 12px; top: 12px; width: 38px; height: 38px; border-radius: 50%; border: 0; background: #fff; color: var(--ink); font-size: 19px; cursor: pointer; line-height: 1; }
 .fav[aria-pressed='true'] { color: var(--magenta-ink); }
 .body { padding: 16px; display: flex; flex-direction: column; gap: 7px; flex: 1; }
 h3 { font-size: 22px; line-height: 1.15; font-weight: 400; }
