@@ -21,6 +21,12 @@ const router = useRouter()
 const busy = ref(false)
 const failed = ref<string | null>(null)
 const askLogin = ref(false)
+const expanded = ref(false)
+const showAll = ref(false)
+const todayIso = todayInZurich()
+const dated = computed(() => props.a.upcoming.filter((o) => o.date >= todayIso && o.status !== 'cancelled'))
+const datedShown = computed(() => (showAll.value ? dated.value : dated.value.slice(0, 6)))
+const whereFull = computed(() => [props.a.venue_name || props.a.location_text, props.a.address, props.a.quartier, f.kreis(props.a.district_number)].filter(Boolean).join(', '))
 const loginTo = computed(() => ({ name: 'login' as const, query: { next: `/a/${props.a.id}` } }))
 const signupTo = computed(() => ({ name: 'login' as const, query: { next: `/a/${props.a.id}`, mode: 'signup' } }))
 
@@ -66,7 +72,7 @@ async function share() {
 <template>
   <article class="tile">
     <div class="ph" aria-hidden="false">
-      <RouterLink :to="{ name: 'activity', params: { id: a.id } }" class="phlink" :aria-label="a.title" tabindex="-1" />
+      <button class="phlink" type="button" :aria-label="a.title" :aria-expanded="expanded" tabindex="-1" @click="expanded = !expanded" />
       <img v-if="a.image_url && imgOk" :src="a.image_url" alt="" loading="lazy" referrerpolicy="no-referrer" class="pic" @error="imgOk = false" />
       <img v-else-if="theme" :src="`/labels/${locale}/${theme.slug}.webp`" :alt="$t(theme.labelKey)" loading="lazy" class="pic tilepic" />
       <span v-if="!confirmed" class="flag">{{ fromChreis ? $t('ui.tile.unconfirmed') : $t('ui.tile.notChecked') }}</span>
@@ -82,7 +88,7 @@ async function share() {
       >{{ fav ? '♥' : '♡' }}</button>
     </div>
     <div class="body">
-      <h3><RouterLink :to="{ name: 'activity', params: { id: a.id } }" class="title">{{ a.title }}</RouterLink></h3>
+      <h3><button type="button" class="title linklike" :aria-expanded="expanded" @click="expanded = !expanded">{{ a.title }}</button></h3>
       <div class="meta">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
         <span>{{ when || $t('card.noUpcoming') }}<template v-if="moreDates"> · {{ $t('ui.tile.moreDates', { n: moreDates }) }}</template></span>
@@ -97,6 +103,39 @@ async function share() {
         <span>{{ $t(`card.reg.${a.registration}`) }}</span>
         <template v-if="sourceUrl"> · <a :href="sourceUrl" target="_blank" rel="noopener">{{ a.organiser_url ? $t('card.organiser') : $t('ui.tile.source') }}</a></template>
       </div>
+      <button class="linkbtn small moretoggle" type="button" :aria-expanded="expanded" @click="expanded = !expanded">{{ expanded ? $t('ui.tile.lessInfo') : $t('ui.tile.moreInfo') }} {{ expanded ? '▴' : '▾' }}</button>
+      <div v-if="expanded" class="more">
+        <dl class="facts">
+          <dt>{{ $t('activity.schedule') }}</dt>
+          <dd>
+            <ul v-if="a.templates.length" class="slots">
+              <li v-for="tp in a.templates" :key="tp.id">
+                <strong>{{ f.day(tp.weekday, 'long') }}</strong> · {{ f.time(tp.start, tp.end) }}
+                <span v-if="tp.recurrence === 'selected_dates'" class="badge warn">{{ $t('week.selected') }}</span>
+                <div v-if="tp.note" class="tiny muted">{{ tp.note }}</div>
+              </li>
+            </ul>
+            <p v-if="a.templates.length" class="tiny muted" style="margin: 4px 0">{{ a.templates.some((x) => x.recurrence === 'selected_dates') ? $t('activity.selectedNote') : $t('activity.weeklyNote') }}</p>
+            <ul v-if="dated.length" class="slots">
+              <li v-for="o in datedShown" :key="o.id"><strong>{{ f.date(o.date) }}</strong> · {{ f.time(o.start, o.end) }}</li>
+            </ul>
+            <button v-if="dated.length > 6" type="button" class="linkbtn tiny" @click="showAll = !showAll">{{ showAll ? $t('ui.fewerDates') : $t('ui.allDates', { n: dated.length }) }}</button>
+            <span v-if="!a.templates.length && !dated.length">{{ $t('card.noUpcoming') }}</span>
+          </dd>
+          <dt>{{ $t('activity.ages') }}</dt><dd>{{ f.age(a) }}</dd>
+          <dt>{{ $t('activity.price') }}</dt><dd>{{ f.price(a) }}</dd>
+          <dt>{{ $t('activity.registration') }}</dt><dd>{{ $t(`card.reg.${a.registration}`) }}<span v-if="a.registration_text && a.registration_text.toLowerCase() !== 'unknown'" class="muted"> ({{ a.registration_text }})</span></dd>
+          <dt>{{ $t('activity.where') }}</dt><dd>{{ whereFull || $t('ui.tile.noPlace') }}</dd>
+        </dl>
+        <p class="tiny" style="margin: 8px 0">
+          <span class="badge" :class="confirmed ? 'ok' : 'warn'">{{ $t(`card.verification.${a.verification}`) }}</span>
+          <span class="muted"> {{ a.last_checked_on ? $t(a.data_origin === 'feed:chreis' ? 'ui.lastSeen' : 'activity.lastChecked', { date: f.date(a.last_checked_on, { day: 'numeric', month: 'long', year: 'numeric' }) }) : $t('activity.neverChecked') }}</span>
+        </p>
+        <div class="row">
+          <a v-if="sourceUrl" class="btn small primary" :href="sourceUrl" target="_blank" rel="noopener">{{ $t('ui.tile.toSource') }} ↗</a>
+          <a v-if="a.booking_url" class="btn small" :href="a.booking_url" target="_blank" rel="noopener">{{ $t('activity.booking') }} ↗</a>
+        </div>
+      </div>
       <div class="foot">
         <button class="btn small" :class="planned ? 'on' : 'primary'" :disabled="busy" @click="addToPlan">
           {{ planned ? $t('card.inPlan') : (auth.loggedIn && slots.length > 1 ? $t('ui.tileAdd') : $t('card.addToPlan')) }}
@@ -109,7 +148,7 @@ async function share() {
         <div class="row">
           <RouterLink :to="loginTo" class="btn small primary">{{ $t('ui.plan.login') }}</RouterLink>
           <RouterLink :to="signupTo" class="btn small">{{ $t('ui.plan.signup') }}</RouterLink>
-          <RouterLink :to="{ name: 'activity', params: { id: a.id } }" class="btn small">{{ $t('ui.plan.view') }}</RouterLink>
+          <button class="btn small" type="button" @click="expanded = true; askLogin = false">{{ $t('ui.plan.view') }}</button>
           <button class="linkbtn tiny" @click="askLogin = false">{{ $t('ui.plan.notNow') }}</button>
         </div>
       </div>
@@ -125,7 +164,14 @@ async function share() {
 .tilepic { object-position: left bottom; }
 .pic { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .credit { position: absolute; left: 8px; bottom: 8px; background: rgba(255,255,255,.88); border-radius: var(--pill); padding: 2px 8px; font-size: 11px; color: var(--ink); }
-.phlink { position: absolute; inset: 0; z-index: 1; }
+.linklike { background: none; border: 0; padding: 0; font: inherit; color: inherit; text-align: left; cursor: pointer; }
+.moretoggle { align-self: flex-start; }
+.more { border-top: 1px solid var(--line); padding-top: 10px; font-size: 14px; font-weight: 300; }
+.more .facts { display: grid; grid-template-columns: 1fr; gap: 2px; margin: 0; }
+.more .facts dt { font-weight: 500; margin-top: 8px; }
+.more .facts dd { margin: 0; }
+.slots { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 4px; }
+.phlink { position: absolute; inset: 0; z-index: 1; background: transparent; border: 0; padding: 0; cursor: pointer; }
 .ask { border: 1px solid var(--line); border-radius: 14px; padding: 12px; background: var(--yellow-soft, #fffbe8); }
 .flag { z-index: 2; pointer-events: none; position: absolute; left: 12px; top: 12px; max-width: calc(100% - 70px); background: #fff; border-radius: var(--pill); padding: 4px 10px; font-size: 12px; color: var(--ink); text-align: left; }
 .fav { z-index: 2; position: absolute; right: 12px; top: 12px; width: 38px; height: 38px; border-radius: 50%; border: 0; background: #fff; color: var(--ink); font-size: 19px; cursor: pointer; line-height: 1; }
