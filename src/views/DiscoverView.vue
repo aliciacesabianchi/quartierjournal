@@ -30,7 +30,9 @@ function fromQuery(): DiscoverFilters & { fit: boolean } {
     ...emptyFilters(),
     q: String(q.q ?? ''),
     districts: String(q.k ?? '').split(',').filter(Boolean).map(Number),
-    weekday: num(q.d) as Weekday | null,
+    weekdays: String(q.d ?? '').split(',').filter(Boolean).map(Number).filter((n) => n >= 1 && n <= 7) as Weekday[],
+    from: /^\d{4}-\d\d-\d\d$/.test(String(q.wf ?? '')) ? String(q.wf) : null,
+    to: /^\d{4}-\d\d-\d\d$/.test(String(q.wt ?? '')) ? String(q.wt) : null,
     timeOfDay: (q.t === 'am' || q.t === 'pm' ? q.t : null),
     childAgeMonths: num(q.age),
     categories: String(q.c ?? '').split(',').filter(Boolean),
@@ -41,7 +43,7 @@ function fromQuery(): DiscoverFilters & { fit: boolean } {
     favouritesOnly: q.fav === '1',
     fit: q.fit === '1',
     scope: q.scope === 'v' ? 'verified' : 'all',
-    when: (q.w === 'today' || q.w === 'week' || q.w === 'month' ? q.w : 'any'),
+    when: (['today', 'tomorrow', 'weekend', 'week', 'nextweek', 'month', 'range'].includes(String(q.w)) ? q.w : 'any') as DiscoverFilters['when'],
     includeUnknownAge: q.uage === '1',
     includeUnknownKreis: q.ukreis === '1',
   }
@@ -55,7 +57,8 @@ watch(s, () => {
   const q: Record<string, string> = {}
   if (s.q) q.q = s.q
   if (s.districts.length) q.k = s.districts.join(',')
-  if (s.weekday) q.d = String(s.weekday)
+  if (s.weekdays.length) q.d = s.weekdays.join(',')
+  if (s.when === 'range') { if (s.from) q.wf = s.from; if (s.to) q.wt = s.to }
   if (s.timeOfDay) q.t = s.timeOfDay
   if (s.childAgeMonths != null) q.age = String(s.childAgeMonths)
   if (s.categories.length) q.c = s.categories.join(',')
@@ -76,7 +79,7 @@ onMounted(() => cat.load())
 
 const extraCount = computed(() =>
   [s.districts.length > 0, s.timeOfDay, s.childAgeMonths != null, s.freeOnly, s.noRegistration,
-    s.forCaregiver !== 'all', s.favouritesOnly, s.fit, s.when !== 'any'].filter(Boolean).length)
+    s.forCaregiver !== 'all', s.favouritesOnly, s.fit, s.when !== 'any', s.weekdays.length > 0].filter(Boolean).length)
 
 const hasSchedule = computed(() => me.blocks.some((b) => me.selfIds.has(b.caregiver_id)))
 
@@ -120,6 +123,9 @@ function toggleMain(m: string) {
 const toggleSub = (x: string) => { s.subcategories = s.subcategories.includes(x) ? s.subcategories.filter((y) => y !== x) : [...s.subcategories, x] }
 function clearCats() { s.categories = []; s.subcategories = [] }
 
+const WHEN = ['any', 'today', 'tomorrow', 'weekend', 'week', 'nextweek', 'month', 'range'] as const
+const todayIso = todayInZurich()
+function toggleWeekday(d: Weekday) { s.weekdays = s.weekdays.includes(d) ? s.weekdays.filter((x) => x !== d) : [...s.weekdays, d].sort() }
 function toggleDistrict(n: number) {
   s.districts = s.districts.includes(n) ? s.districts.filter((x) => x !== n) : [...s.districts, n].sort((a, b) => a - b)
 }
@@ -150,12 +156,6 @@ const ageLabel = (m: number) => (m < 12 ? 'discover.ageMonths' : null)
       </button>
     </div>
 
-    <div class="chips days" role="group" :aria-label="$t('activity.schedule')">
-      <button v-for="d in [1, 2, 3, 4, 5, 6, 7] as Weekday[]" :key="d" class="chip" :aria-pressed="s.weekday === d" @click="s.weekday = s.weekday === d ? null : d">
-        {{ f.day(d) }}
-      </button>
-    </div>
-
     <div class="chips scope" role="group" :aria-label="$t('ui.disc.scopeAll')">
       <button class="chip" :aria-pressed="s.scope === 'all'" @click="s.scope = 'all'">{{ $t('ui.disc.scopeAll') }} ({{ live.length }})</button>
       <button class="chip" :aria-pressed="s.scope === 'verified'" @click="s.scope = 'verified'">{{ $t('ui.disc.scopeVerified') }} ({{ verifiedCount }})</button>
@@ -182,15 +182,22 @@ const ageLabel = (m: number) => (m < 12 ? 'discover.ageMonths' : null)
           <button v-for="n in 12" :key="n" class="chip" :aria-pressed="s.districts.includes(n)" @click="toggleDistrict(n)">{{ n }}</button>
         </div>
       </fieldset>
+      <fieldset class="when">
+        <legend class="small" style="font-weight: 500">{{ $t('ui.disc.when') }}</legend>
+        <div class="chips">
+          <button v-for="w in WHEN" :key="w" class="chip" :aria-pressed="s.when === w" @click="s.when = w">{{ $t(`ui.disc.when_${w}`) }}</button>
+        </div>
+        <div v-if="s.when === 'range'" class="row">
+          <label class="field"><span>{{ $t('ui.disc.from') }}</span><input v-model="s.from" type="date" class="input" :min="todayIso" /></label>
+          <label class="field"><span>{{ $t('ui.disc.to') }}</span><input v-model="s.to" type="date" class="input" :min="s.from || todayIso" /></label>
+        </div>
+        <p class="tiny muted" style="margin: 0">{{ $t('ui.disc.whenHelp') }}</p>
+        <div class="chips" role="group" :aria-label="$t('ui.disc.weekdaysOnly')">
+          <span class="tiny muted">{{ $t('ui.disc.weekdaysOnly') }}</span>
+          <button v-for="d in [1, 2, 3, 4, 5, 6, 7] as Weekday[]" :key="d" class="chip small" :aria-pressed="s.weekdays.includes(d)" @click="toggleWeekday(d)">{{ f.day(d) }}</button>
+        </div>
+      </fieldset>
       <div class="filters">
-        <label class="field"><span>{{ $t('ui.disc.when') }}</span>
-          <select v-model="s.when" class="input">
-            <option value="any">{{ $t('ui.disc.whenAny') }}</option>
-            <option value="today">{{ $t('ui.disc.whenToday') }}</option>
-            <option value="week">{{ $t('ui.disc.whenWeek') }}</option>
-            <option value="month">{{ $t('ui.disc.whenMonth') }}</option>
-          </select>
-        </label>
         <label class="field"><span>{{ $t('discover.age') }}</span>
           <select v-model="s.childAgeMonths" class="input">
             <option :value="null">{{ $t('discover.ageAny') }}</option>

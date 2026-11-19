@@ -24,7 +24,7 @@ const en = {
   },
   disc: {
     scopeAll: 'All events in Zürich', scopeVerified: 'Confirmed with organiser',
-    when: 'When', whenAny: 'Any time', whenToday: 'Today', whenWeek: 'Next 7 days', whenMonth: 'Next 30 days',
+    when: 'When', when_any: 'All dates', when_today: 'Today', when_tomorrow: 'Tomorrow', when_weekend: 'This weekend', when_week: 'Next 7 days', when_nextweek: 'Next week', when_month: 'Next 30 days', when_range: 'Pick dates …', from: 'From', to: 'Until', weekdaysOnly: 'Only on these weekdays:', whenHelp: 'By default you see everything. Choose a time window to see what is on then, for example next week or a date range in the future.', whenAny: 'Any time', whenToday: 'Today', whenWeek: 'Next 7 days', whenMonth: 'Next 30 days',
     unknownAge: 'Also show entries with no age given', unknownKreis: 'Also show entries with no Kreis given',
     hiddenKreis: '{n} entries without a Kreis are hidden.', hiddenAge: '{n} entries without an age are hidden.', showThem: 'Show them',
     attribution: 'Entries marked “via Chreis+” come from the open data of Chreis+ (CC BY-SA 4.0), without images or original texts.',
@@ -65,7 +65,7 @@ const de: typeof en = {
   },
   disc: {
     scopeAll: 'Alle Veranstaltungen in Zürich', scopeVerified: 'Beim Anbieter bestätigt',
-    when: 'Wann', whenAny: 'Jederzeit', whenToday: 'Heute', whenWeek: 'Nächste 7 Tage', whenMonth: 'Nächste 30 Tage',
+    when: 'Wann', when_any: 'Alle Termine', when_today: 'Heute', when_tomorrow: 'Morgen', when_weekend: 'Dieses Wochenende', when_week: 'Nächste 7 Tage', when_nextweek: 'Nächste Woche', when_month: 'Nächste 30 Tage', when_range: 'Datum wählen …', from: 'Von', to: 'Bis', weekdaysOnly: 'Nur an diesen Wochentagen:', whenHelp: 'Standardmässig siehst du alles. Wähle einen Zeitraum, um zu sehen, was dann stattfindet, zum Beispiel nächste Woche oder einen Zeitraum in der Zukunft.', whenAny: 'Jederzeit', whenToday: 'Heute', whenWeek: 'Nächste 7 Tage', whenMonth: 'Nächste 30 Tage',
     unknownAge: 'Auch Einträge ohne Altersangabe zeigen', unknownKreis: 'Auch Einträge ohne Kreis-Angabe zeigen',
     hiddenKreis: '{n} Einträge ohne Kreis-Angabe sind ausgeblendet.', hiddenAge: '{n} Einträge ohne Altersangabe sind ausgeblendet.', showThem: 'Anzeigen',
     attribution: 'Einträge mit «Über Chreis+» stammen aus den offenen Daten von Chreis+ (CC BY-SA 4.0), ohne Bilder und Originaltexte.',
@@ -106,7 +106,7 @@ const it: typeof en = {
   },
   disc: {
     scopeAll: 'Tutti gli eventi a Zurigo', scopeVerified: 'Confermati dall’organizzatore',
-    when: 'Quando', whenAny: 'In qualsiasi momento', whenToday: 'Oggi', whenWeek: 'Prossimi 7 giorni', whenMonth: 'Prossimi 30 giorni',
+    when: 'Quando', when_any: 'Tutte le date', when_today: 'Oggi', when_tomorrow: 'Domani', when_weekend: 'Questo fine settimana', when_week: 'Prossimi 7 giorni', when_nextweek: 'Prossima settimana', when_month: 'Prossimi 30 giorni', when_range: 'Scegli le date …', from: 'Dal', to: 'Al', weekdaysOnly: 'Solo in questi giorni:', whenHelp: 'Di default vedi tutto. Scegli un periodo per vedere cosa c’è allora, per esempio la prossima settimana o un periodo futuro.', whenAny: 'In qualsiasi momento', whenToday: 'Oggi', whenWeek: 'Prossimi 7 giorni', whenMonth: 'Prossimi 30 giorni',
     unknownAge: 'Mostra anche le voci senza indicazione dell’età', unknownKreis: 'Mostra anche le voci senza circolo',
     hiddenKreis: '{n} voci senza circolo sono nascoste.', hiddenAge: '{n} voci senza età sono nascoste.', showThem: 'Mostra',
     attribution: 'Le voci con «Tramite Chreis+» provengono dai dati aperti di Chreis+ (CC BY-SA 4.0), senza immagini né testi originali.',
@@ -147,7 +147,7 @@ const fr: typeof en = {
   },
   disc: {
     scopeAll: 'Tous les événements à Zurich', scopeVerified: 'Confirmés par l’organisateur',
-    when: 'Quand', whenAny: 'À tout moment', whenToday: 'Aujourd’hui', whenWeek: '7 prochains jours', whenMonth: '30 prochains jours',
+    when: 'Quand', when_any: 'Toutes les dates', when_today: 'Aujourd’hui', when_tomorrow: 'Demain', when_weekend: 'Ce week-end', when_week: '7 prochains jours', when_nextweek: 'Semaine prochaine', when_month: '30 prochains jours', when_range: 'Choisir des dates …', from: 'Du', to: 'Au', weekdaysOnly: 'Seulement ces jours :', whenHelp: 'Par défaut, tu vois tout. Choisis une période pour voir ce qui a lieu alors, par exemple la semaine prochaine ou une période à venir.', whenAny: 'À tout moment', whenToday: 'Aujourd’hui', whenWeek: '7 prochains jours', whenMonth: '30 prochains jours',
     unknownAge: 'Afficher aussi les entrées sans âge indiqué', unknownKreis: 'Afficher aussi les entrées sans arrondissement',
     hiddenKreis: '{n} entrées sans arrondissement sont masquées.', hiddenAge: '{n} entrées sans âge sont masquées.', showThem: 'Afficher',
     attribution: 'Les entrées marquées « Via Chreis+ » proviennent des données ouvertes de Chreis+ (CC BY-SA 4.0), sans images ni textes d’origine.',

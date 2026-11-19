@@ -5,7 +5,10 @@ import { addDays, isoWeekday, toMinutes } from './time'
 export interface DiscoverFilters {
   q: string
   districts: number[]          // empty = all
-  weekday: Weekday | null
+  weekdays: Weekday[]            // only on these weekdays; empty = any
+  when: 'any' | 'today' | 'tomorrow' | 'weekend' | 'week' | 'nextweek' | 'month' | 'range'
+  from: string | null            // with when = 'range': first day (default today)
+  to: string | null              // with when = 'range': last day (default: one year after 'from')
   timeOfDay: 'am' | 'pm' | null
   childAgeMonths: number | null
   categories: string[]          // main categories (taxonomy.ts); empty = all
@@ -16,7 +19,6 @@ export interface DiscoverFilters {
   favouritesOnly: boolean
   /** 'verified' = only entries confirmed with the organiser; 'all' = also entries found via aggregator feeds */
   scope: 'all' | 'verified'
-  when: 'any' | 'today' | 'week' | 'month'
   /** with an age filter active: also show entries whose age is not known (feed entries) */
   includeUnknownAge: boolean
   /** with a Kreis filter active: also show entries whose Kreis is not known */
@@ -24,9 +26,9 @@ export interface DiscoverFilters {
 }
 
 export const emptyFilters = (): DiscoverFilters => ({
-  q: '', districts: [], weekday: null, timeOfDay: null, childAgeMonths: null, categories: [], subcategories: [],
+  q: '', districts: [], weekdays: [], timeOfDay: null, childAgeMonths: null, categories: [], subcategories: [],
   freeOnly: false, noRegistration: false, forCaregiver: 'all', favouritesOnly: false,
-  scope: 'all', when: 'any', includeUnknownAge: false, includeUnknownKreis: false,
+  scope: 'all', when: 'any', from: null, to: null, includeUnknownAge: false, includeUnknownKreis: false,
 })
 
 const norm = (s: string | null | undefined) =>
@@ -71,21 +73,35 @@ export function isEnded(a: ActivityCard, today: string): boolean {
 }
 
 /** Does the activity take place in [from, to] (inclusive)? Dated sessions exactly; weekly patterns "usually" (never selected-dates ones). */
-export function occursBetween(a: ActivityCard, from: string, to: string): boolean {
-  if (a.upcoming.some((o) => o.status !== 'cancelled' && o.date >= from && o.date <= to)) return true
+export function occursBetween(a: ActivityCard, from: string, to: string, weekdays: Weekday[] = []): boolean {
+  const okDay = (d: string) => !weekdays.length || weekdays.includes(isoWeekday(d))
+  if (a.upcoming.some((o) => o.status !== 'cancelled' && o.date >= from && o.date <= to && okDay(o.date))) return true
   const weekly = new Set(a.templates.filter((t) => t.recurrence === 'weekly').map((t) => t.weekday))
   if (!weekly.size) return false
-  for (let d = from; d <= to; d = addDays(d, 1)) if (weekly.has(isoWeekday(d))) return true
+  for (let d = from; d <= to; d = addDays(d, 1)) if (weekly.has(isoWeekday(d)) && okDay(d)) return true
   return false
+}
+
+/** The date window a "when" choice stands for (null = any time). */
+export function dateWindow(f: Pick<DiscoverFilters, 'when' | 'from' | 'to'>, today: string): [string, string] | null {
+  if (f.when === 'any') return null
+  const dow = isoWeekday(today)
+  switch (f.when) {
+    case 'today': return [today, today]
+    case 'tomorrow': { const t = addDays(today, 1); return [t, t] }
+    case 'weekend': { const sat = dow >= 6 ? today : addDays(today, 6 - dow); return [sat, dow === 7 ? today : addDays(today, 7 - dow)] }
+    case 'week': return [today, addDays(today, 6)]
+    case 'nextweek': { const mon = addDays(today, 8 - dow); return [mon, addDays(mon, 6)] }
+    case 'month': return [today, addDays(today, 29)]
+    case 'range': { const from = f.from && f.from > today ? f.from : today; return [from, f.to && f.to >= from ? f.to : addDays(from, 365)] }
+  }
 }
 
 export function matches(a: ActivityCard, f: DiscoverFilters, favourites: Set<string>, today: string = ''): boolean {
   if (today && isEnded(a, today)) return false
   if (f.scope === 'verified' && !isVerified(a)) return false
-  if (f.when !== 'any' && today) {
-    const to = f.when === 'today' ? today : addDays(today, f.when === 'week' ? 6 : 29)
-    if (!occursBetween(a, today, to)) return false
-  }
+  const win = today ? dateWindow(f, today) : null
+  if (win && !occursBetween(a, win[0], win[1], f.weekdays)) return false
   if (f.q) {
     const hay = norm([a.title, a.venue_name, a.quartier, a.activity_type, a.district_number ? `kreis ${a.district_number}` : ''].join(' '))
     if (!norm(f.q).split(/\s+/).every((w) => hay.includes(w))) return false
@@ -111,9 +127,9 @@ export function matches(a: ActivityCard, f: DiscoverFilters, favourites: Set<str
     if (!ageKnown(a) && !isVerified(a) && !f.includeUnknownAge) return false
     if (!ageMatches(a, f.childAgeMonths)) return false
   }
-  if (f.weekday || f.timeOfDay) {
+  if ((f.weekdays.length && !win) || f.timeOfDay) {
     const ok = activitySlots(a).some((s) => {
-      if (f.weekday && s.weekday !== f.weekday) return false
+      if (f.weekdays.length && !win && !f.weekdays.includes(s.weekday)) return false
       if (f.timeOfDay) {
         if (!s.start) return true // unknown time: don't hide
         const start = toMinutes(s.start)

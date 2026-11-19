@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { ActivityCard } from './types'
-import { ageMatches, emptyFilters, fitsFreeTime, isEnded, matches, mixCategories, occursBetween, publicNote, sortCards } from './filters'
+import { ageMatches, dateWindow, emptyFilters, fitsFreeTime, isEnded, matches, mixCategories, occursBetween, publicNote, sortCards } from './filters'
 import { buildIcs, fold, escapeText, googleCalendarUrl } from './ics'
 import { addDays, isoWeekday, nextDateForWeekday, todayInZurich, weekdayName, ageInMonths } from './time'
 import { normaliseUrl, whatsappUrl } from './share'
@@ -55,8 +55,8 @@ describe('filters', () => {
   })
   it('filters by weekday, district, search and free', () => {
     const f = emptyFilters()
-    expect(matches(card(), { ...f, weekday: 5 }, new Set())).toBe(true)
-    expect(matches(card(), { ...f, weekday: 2 }, new Set())).toBe(false)
+    expect(matches(card(), { ...f, weekdays: [5] }, new Set())).toBe(true)
+    expect(matches(card(), { ...f, weekdays: [2] }, new Set())).toBe(false)
     expect(matches(card(), { ...f, districts: [6] }, new Set())).toBe(true)
     expect(matches(card(), { ...f, districts: [7] }, new Set())).toBe(false)
     expect(matches(card(), { ...f, q: 'buchegg krabbel' }, new Set())).toBe(true)
@@ -67,7 +67,7 @@ describe('filters', () => {
   })
   it('matches dated sessions by their weekday', () => {
     const c = card({ templates: [], upcoming: [{ id: 'o1', date: '2026-11-29', start: '10:15:00', end: null, status: 'listed' }] })
-    expect(matches(c, { ...emptyFilters(), weekday: 7 }, new Set())).toBe(true)
+    expect(matches(c, { ...emptyFilters(), weekdays: [7] }, new Set())).toBe(true)
   })
   it('fits free time only inside a "me" block', () => {
     const blocks = [
@@ -215,5 +215,30 @@ describe('multi-select categories', () => {
   })
   it('no selection shows everything classified or not', () => {
     expect(matches(c('Irgendetwas'), f({}), new Set())).toBe(true)
+  })
+})
+
+describe('dateWindow', () => {
+  const today = '2026-11-18' // Wednesday
+  const w = (when: any, extra: object = {}) => dateWindow({ when, from: null, to: null, ...extra }, today)
+  it('knows the quick choices', () => {
+    expect(w('any')).toBeNull()
+    expect(w('today')).toEqual(['2026-11-18', '2026-11-18'])
+    expect(w('tomorrow')).toEqual(['2026-11-19', '2026-11-19'])
+    expect(w('weekend')).toEqual(['2026-11-21', '2026-11-22'])
+    expect(w('nextweek')).toEqual(['2026-11-23', '2026-11-29'])
+    expect(w('week')).toEqual(['2026-11-18', '2026-11-24'])
+  })
+  it('takes a picked range, never starting in the past', () => {
+    expect(w('range', { from: '2027-01-10', to: '2027-01-20' })).toEqual(['2027-01-10', '2027-01-20'])
+    expect(w('range', { from: '2026-01-01', to: null })?.[0]).toBe('2026-11-18')
+  })
+  it('weekend on a Saturday starts today', () => {
+    expect(dateWindow({ when: 'weekend', from: null, to: null }, '2026-11-21')).toEqual(['2026-11-21', '2026-11-22'])
+  })
+  it('combines a window with weekdays', () => {
+    const c = card({ templates: [], upcoming: [{ id: 'o1', date: '2027-01-15', start: '10:00:00', end: null, status: 'listed' }] as any })
+    expect(matches(c, { ...emptyFilters(), when: 'range', from: '2027-01-10', to: '2027-01-20', weekdays: [5] }, new Set(), today)).toBe(true)
+    expect(matches(c, { ...emptyFilters(), when: 'range', from: '2027-01-10', to: '2027-01-20', weekdays: [2] }, new Set(), today)).toBe(false)
   })
 })
