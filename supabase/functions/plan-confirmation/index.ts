@@ -64,7 +64,12 @@ Deno.serve(async (req) => {
       ...(mail.ics ? { attachment: [{ name: 'quartierjournal.ics', content: btoa(String.fromCharCode(...new TextEncoder().encode(mail.ics))) }] } : {}),
     }
     const r = await fetch('https://api.brevo.com/v3/smtp/email', { method: 'POST', headers: { 'api-key': key, 'Content-Type': 'application/json', accept: 'application/json' }, body: JSON.stringify(body) })
-    if (!r.ok) { console.error('brevo', r.status, (await r.text()).slice(0, 300)); return json({ sent: false, reason: 'provider_error' }, 502) }
+    if (!r.ok) {
+      const txt = (await r.text()).replace(/\s+/g, ' ').slice(0, 200)
+      console.error('brevo', r.status, txt)
+      // Brevo's answer contains no secret (only a code and a message), so it is passed on to make problems visible
+      return json({ sent: false, reason: 'provider_error', detail: `Brevo ${r.status}: ${txt}` }, 502)
+    }
 
     await fetch(`${SB}/rest/v1/email_log`, { method: 'POST', headers: { apikey: SERVICE, Authorization: `Bearer ${SERVICE}`, 'Content-Type': 'application/json', Prefer: 'return=minimal' }, body: JSON.stringify({ user_id: user.id, kind: 'plan_confirmation', plan_item_id }) })
     return json({ sent: true, to: user.email })
