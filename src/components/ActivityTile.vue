@@ -118,7 +118,7 @@ async function share() {
             </ul>
             <p v-if="a.templates.length" class="tiny muted" style="margin: 4px 0">{{ a.templates.some((x) => x.recurrence === 'selected_dates') ? $t('activity.selectedNote') : $t('activity.weeklyNote') }}</p>
             <ul v-if="dated.length" class="slots">
-              <li v-for="o in datedShown" :key="o.id"><strong>{{ f.date(o.date) }}</strong> · {{ f.time(o.start, o.end) }}</li>
+              <li v-for="o in datedShown" :key="o.id"><strong>{{ f.date(o.date) }}</strong> · {{ f.time(o.start, o.end) }}<div v-if="o.note" class="tiny muted">{{ o.note }}</div></li>
             </ul>
             <button v-if="dated.length > 6" type="button" class="linkbtn tiny" @click="showAll = !showAll">{{ showAll ? $t('ui.fewerDates') : $t('ui.allDates', { n: dated.length }) }}</button>
             <span v-if="!a.templates.length && !dated.length">{{ $t('card.noUpcoming') }}</span>

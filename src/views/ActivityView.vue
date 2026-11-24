@@ -119,7 +119,7 @@ async function add(item: { template_id?: string; occurrence_id?: string }) {
             <h3 class="small strong">{{ $t('activity.upcoming') }}</h3>
             <ul class="slots">
               <li v-for="o in datedShown" :key="o.id">
-                <span><strong>{{ f.date(o.date) }}</strong> · {{ f.time(o.start, o.end) }}</span>
+                <span><strong>{{ f.date(o.date) }}</strong> · {{ f.time(o.start, o.end) }}<span v-if="o.note" class="tiny muted"><br />{{ o.note }}</span></span>
                 <span class="row">
                   <a v-if="gcal({ activity: a, occurrence: o })" :href="gcal({ activity: a, occurrence: o })!" target="_blank" rel="noopener" class="small">{{ $t('activity.googleCal') }}</a>
                   <button v-if="auth.loggedIn" class="btn small" :class="me.inPlan(o.id) ? 'on' : 'primary'" :disabled="me.inPlan(o.id) || busy === o.id" @click="add({ occurrence_id: o.id })">

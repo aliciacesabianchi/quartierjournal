@@ -69,7 +69,7 @@ export const RULES: Rule[] = [
   r('culture', 'puppets', /puppen|figurentheater|kasperli|marionett/i),
   r('culture', 'kidstheatre', /kindertheater|theater|impro/i),
   r('culture', 'picturebooks', /bilderbuch/i),
-  r('culture', 'stories', /geschichte|vorlesen|märli|märchen|erzähl|lesung|lesen\b|schreiben|rössli|kniereim|fingerspiel/i),
+  r('culture', 'stories', /geschichte|vorlesen|märli|märchen|erzähl|lesung|lesen\b|schreiben|rössli|kniereim|fingerspiel|bücherkiste/i),
   r('culture', 'libraries', /bibliothek|bücherei|\bpbz\b|bücherbus/i),
   r('culture', 'museums', /museum|ausstellung|vernissage|finissage|galerie|art friday|kunsthaus/i),
   r('culture', 'tours', /\bführung|rundgang|stadtrundgang/i),

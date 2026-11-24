@@ -15,6 +15,7 @@ export interface TemplateSlot {
 }
 
 export interface Occurrence {
+  note?: string | null
   id: string
   date: string // 'YYYY-MM-DD'
   start: string | null

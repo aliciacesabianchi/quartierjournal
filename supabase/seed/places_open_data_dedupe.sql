@@ -40,3 +40,7 @@ from (select o.id as old_id, n.id as new_id from (values
 where a.venue_id = m.old_id;
 update public.venues o set status = 'archived'
 where o.data_origin <> 'provider:site' and o.status = 'published' and lower(o.name) in ('ludothek kreis 6', 'ludothek schwamendingen', 'ludothek zürich 7', 'ludothek zürich nord');
+
+-- PBZ KinderTREFF is now imported from the library's own programme (provider:pbz): archive the same series from the Chreis+ feed.
+update public.activities set status = 'archived'
+where data_origin = 'feed:chreis' and status = 'published' and title ~* '^(Bücherkiste|Geschichtenzeit|Ryte, ryte|Bilderbuchkino)' and title !~* 'Bullinger';
