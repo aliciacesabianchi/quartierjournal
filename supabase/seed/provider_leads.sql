@@ -43,3 +43,20 @@ update public.leads set status = 'accepted', status_note = 'Added as a place wit
 insert into public.leads (id, url, name, note, origin, status)
 select 'a1000000-0000-5000-8000-000000000013'::uuid, 'https://kinderregion.ch/en/filter/?view=list&filter%5B%5D=zurich', 'Kinderregion.ch – Zürich (Verzeichnis)', 'Sent by the project owner. Directory of family places/activities; the list is loaded by script. Use it to find providers, then take dates and prices from each provider''s own page. Do not copy the directory.', 'worker', 'new'
 where not exists (select 1 from public.leads where id = 'a1000000-0000-5000-8000-000000000013');
+
+-- Shops sent by the owner (2026-11-24, from a Google Maps list). Sites that could not be read from here (check by hand or send addresses/hours):
+insert into public.leads (id, url, name, note, origin, status)
+select v.id::uuid, v.url, v.name, v.note, 'worker', 'new' from (values
+ ('a1000000-0000-5000-8000-000000000014','https://www.rosaquartier.ch/','Rosa Quartier','Website refused the connection. Check by hand.'),
+ ('a1000000-0000-5000-8000-000000000015','https://www.babycomeback.ch/','Baby Come Back (neu und Secondhand)','Page shows hours Mo-Fr 10-18.30, Sa 10-17 but the Zurich address is unclear (a Basel address appears). Confirm the Zurich store.'),
+ ('a1000000-0000-5000-8000-000000000016','https://zvrich.com/','ZVRICH, Limmatquai 94','Could not confirm what it sells (looks like clothing). Confirm if it belongs to the guide.'),
+ ('a1000000-0000-5000-8000-000000000017','https://ch.namuk.com/','Namuk (Outdoor-Kinderkleidung)','Online shop; no Zurich store address found.'),
+ ('a1000000-0000-5000-8000-000000000018','https://zemabell.ch/','Zemabell (Babymode)','Online shop; no Zurich store address found.'),
+ ('a1000000-0000-5000-8000-000000000019','https://www.smythstoys.com/ch/de-ch/','Smyths Toys','Site blocks automated reading; check the store locator by hand.'),
+ ('a1000000-0000-5000-8000-00000000001a','https://www.de.okaidi.ch/','Okaïdi (Zürich Letzipark)','Site did not respond. Check by hand.'),
+ ('a1000000-0000-5000-8000-00000000001b','http://www.nook-zh.ch/','Nook Zürich','Web address does not exist any more. Possibly closed or moved.'),
+ ('a1000000-0000-5000-8000-00000000001c','http://www.mogli-chinderlade.ch/','Mogli Chinderlade','Web address does not exist any more. Possibly closed or moved.'),
+ ('a1000000-0000-5000-8000-00000000001d','http://www.zero-7.ch/','Zero-7','Web address does not exist any more. Possibly closed or moved.'),
+ ('a1000000-0000-5000-8000-00000000001e','http://kndkids.ch/','KND Kids','Web address does not exist any more. Possibly closed or moved.'),
+ ('a1000000-0000-5000-8000-00000000001f','http://www.makingthings.ch/','Making Things','Web address does not exist any more. Possibly closed or moved.')
+) as v(id, url, name, note) where not exists (select 1 from public.leads l where l.id = v.id::uuid);
