@@ -50,7 +50,7 @@ Deno.serve(async (req) => {
     const occurrence = item.occurrence_id ? (card.upcoming ?? []).find((o: { id: string }) => o.id === item.occurrence_id) : undefined
     if (!template && !occurrence) return json({ sent: false, reason: 'not_found' }, 404)
 
-    const key = Deno.env.get('BREVO_API_KEY'); const from = Deno.env.get('MAIL_FROM_EMAIL')
+    const key = Deno.env.get('BREVO_API_KEY')?.trim().replace(/^["']|["']$/g, '').trim(); const from = Deno.env.get('MAIL_FROM_EMAIL')
     if (!key || !from) return json({ sent: false, reason: 'not_configured' }, 503)
     const appUrl = Deno.env.get('APP_URL') ?? 'https://quartierjournal.pages.dev'
     const contact = Deno.env.get('CONTACT_EMAIL') ?? null
