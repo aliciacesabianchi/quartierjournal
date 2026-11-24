@@ -9,7 +9,7 @@ import { buildIcs, googleCalendarUrl, type IcsItem } from '@/domain/ics'
 import { addDays, hhmm, isoWeekday, toMinutes, todayInZurich } from '@/domain/time'
 import type { CareBlock, TemplateSlot, Occurrence, Weekday } from '@/domain/types'
 import { downloadIcs, icsLabels } from '@/lib/calendar'
-import { appUrl } from '@/lib/supabase'
+import { appUrl, supabase } from '@/lib/supabase'
 import ActivityTile from '@/components/ActivityTile.vue'
 
 const { t } = useI18n()
@@ -92,12 +92,24 @@ async function deleteBlock() {
 
 // ───────────── plan entries placed on the grid ─────────────
 interface Row { p: (typeof me.plan)[number]; a?: ReturnType<typeof cat.byId>; tp?: TemplateSlot; oc?: Occurrence; weekday: Weekday | null }
-const planRows = computed<Row[]>(() => me.plan.map((p) => {
+const allPlanRows = computed<Row[]>(() => me.plan.map((p) => {
   const a = cat.byId(p.activity_id)
   const tp = a?.templates.find((x) => x.id === p.template_id)
   const oc = p.occurrence_id ? a?.upcoming.find((x) => x.id === p.occurrence_id) : undefined
   return { p, a, tp, oc, weekday: (tp?.weekday ?? (oc ? isoWeekday(oc.date) : null)) as Weekday | null }
 }))
+// The catalogue lists only upcoming sessions, so a dated plan entry whose session is no longer listed has passed: it moves to the archive.
+const isArchived = (r: Row) => !!(r.a && r.p.occurrence_id && !r.oc)
+const planRows = computed(() => allPlanRows.value.filter((r) => !isArchived(r)))
+const archivedRows = computed(() => allPlanRows.value.filter(isArchived))
+const pastInfo = ref<Record<string, { date: string; start_time: string | null; end_time: string | null }>>({})
+watch(archivedRows, async (rows) => {
+  const ids = rows.map((r) => r.p.occurrence_id!).filter((id) => !pastInfo.value[id])
+  if (!ids.length || !supabase) return
+  const { data } = await supabase.from('occurrences').select('id, date, start_time, end_time').in('id', ids)
+  for (const o of data ?? []) pastInfo.value = { ...pastInfo.value, [o.id]: o }
+}, { immediate: true })
+const pastWhen = (r: Row) => { const i = pastInfo.value[r.p.occurrence_id!]; return i ? `${f.date(i.date)} ${f.time(i.start_time, i.end_time)}` : '' }
 /** Plan rows that fall on a calendar date: weekly slots every week; dated sessions only on their date. */
 const rowsOn = (date: string) => planRows.value.filter((r) => (r.oc ? r.oc.date === date : r.tp ? r.tp.weekday === isoWeekday(date) : false))
 const slotOf = (r: Row) => r.tp ?? r.oc
@@ -236,7 +248,7 @@ watch(narrow, () => { page.value = 0 })
 
       <section class="panel stack">
         <h2 class="h">{{ $t('week.plan') }}</h2>
-        <p v-if="!me.plan.length" class="muted" style="margin: 0">{{ $t('week.planEmpty') }}</p>
+        <p v-if="!planRows.length" class="muted" style="margin: 0">{{ $t('week.planEmpty') }}</p>
         <ul v-else class="plan">
           <li v-for="r in planRows" :key="r.p.id">
             <span>
@@ -251,7 +263,19 @@ watch(narrow, () => { page.value = 0 })
             </span>
           </li>
         </ul>
-        <template v-if="me.plan.length">
+        <details v-if="archivedRows.length" class="archive">
+          <summary class="small muted">{{ $t('ui.week.archive', { n: archivedRows.length }) }}</summary>
+          <ul class="plan">
+            <li v-for="r in archivedRows" :key="r.p.id">
+              <span><strong>{{ r.a?.title ?? '—' }}</strong><span class="small muted"> · {{ pastWhen(r) }}</span></span>
+              <span class="row">
+                <RouterLink v-if="r.a" class="btn small" :to="{ name: 'activity', params: { id: r.a.id } }">{{ $t('ui.week.open') }}</RouterLink>
+                <button class="btn small" @click="run(() => me.removeFromPlan(r.p.id))">{{ $t('week.remove') }}</button>
+              </span>
+            </li>
+          </ul>
+        </details>
+        <template v-if="planRows.length">
           <div><button class="btn" @click="exportPlan">{{ $t('week.exportAll') }}</button></div>
           <p class="tiny muted" style="margin: 0">{{ $t('week.exportNote') }}</p>
         </template>
@@ -343,6 +367,8 @@ watch(narrow, () => { page.value = 0 })
 .mc.today { border-color: var(--ink); }
 .mi { background: var(--magenta); color: #fff; border-radius: 6px; padding: 1px 5px; font-size: 11px; text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+.archive { margin-top: 8px; }
+.archive summary { cursor: pointer; }
 .plan { list-style: none; padding: 0; margin: 0; }
 .plan li { display: flex; justify-content: space-between; gap: 8px 16px; flex-wrap: wrap; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--line); }
 

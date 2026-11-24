@@ -161,6 +161,7 @@ async function share() {
         </div>
       </div>
       <p v-if="sentNote" class="tiny" role="status" style="margin: 0">✉ {{ sentNote }}</p>
+      <p v-if="planned" class="tiny" style="margin: 0"><RouterLink :to="{ name: 'week' }">{{ $t('ui.plan.viewWeek') }}</RouterLink></p>
       <p v-for="(g, i) in planGcal" :key="i" class="tiny" style="margin: 0"><a :href="g" target="_blank" rel="noopener">📅 {{ $t('ui.plan.calendar') }}</a></p>
       <p v-if="failed" class="tiny err" role="alert">{{ failed }}</p>
     </div>

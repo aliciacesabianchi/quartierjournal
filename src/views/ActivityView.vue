@@ -132,7 +132,7 @@ async function add(item: { template_id?: string; occurrence_id?: string }) {
           <button v-if="dated.length > 8" class="linkbtn small" @click="showAllDates = !showAllDates">{{ showAllDates ? $t('ui.fewerDates') : $t('ui.allDates', { n: dated.length }) }}</button>
           <p v-if="!a.templates.length && !dated.length">{{ $t('card.noUpcoming') }}</p>
           <p v-else-if="!hasTimes" class="small">{{ $t('activity.noTimes') }}</p>
-          <div v-if="message" class="notice" :class="message.kind" role="status">{{ message.text }}</div>
+          <div v-if="message" class="notice" :class="message.kind" role="status">{{ message.text }} <RouterLink v-if="message.kind === 'ok'" :to="{ name: 'week' }">{{ $t('ui.plan.viewWeek') }}</RouterLink></div>
           <p v-if="!auth.loggedIn" class="small"><RouterLink :to="{ name: 'login', query: { next: `/a/${a.id}` } }">{{ $t('activity.loginToPlan') }}</RouterLink></p>
           <div v-if="hasTimes"><button class="btn small" @click="exportIcs">{{ $t('activity.exportIcs') }}</button></div>
         </section>
