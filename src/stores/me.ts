@@ -107,17 +107,23 @@ export const useMe = defineStore('me', () => {
     blocks.value = blocks.value.filter((b) => b.id !== id)
   }
 
-  /** Adds to the plan, then asks the email function to send a confirmation to the user's own address (never blocks or fails the add). */
-  async function addToPlan(item: { activity_id: string; template_id?: string; occurrence_id?: string }): Promise<{ emailed: boolean; to?: string }> {
+  /** Adds to the plan, then asks the email function to send a confirmation to the user's own address (never blocks or fails the add).
+   *  Returns why no email was sent, so the page can say so honestly instead of staying silent. */
+  async function addToPlan(item: { activity_id: string; template_id?: string; occurrence_id?: string }): Promise<{ emailed: boolean; to?: string; reason?: string }> {
     const row = check(await db().from('plan_items').insert(item).select('id, activity_id, template_id, occurrence_id, note').single()) as unknown as PlanItem
     plan.value.push(row)
-    if (profile.value?.email_plan_confirmations === false) return { emailed: false }
+    if (profile.value?.email_plan_confirmations === false) return { emailed: false, reason: 'opted_out' }
     try {
       const call = db().functions.invoke('plan-confirmation', { body: { plan_item_id: row.id } })
-      const res = await Promise.race([call, new Promise<null>((r) => setTimeout(() => r(null), 8000))])
-      const d = (res as { data?: { sent?: boolean; to?: string } } | null)?.data
-      return d?.sent ? { emailed: true, to: d.to } : { emailed: false }
-    } catch { return { emailed: false } }
+      const res = (await Promise.race([call, new Promise<null>((r) => setTimeout(() => r(null), 12000))])) as { data?: { sent?: boolean; to?: string; reason?: string } | null; error?: { message?: string; context?: Response } } | null
+      if (!res) return { emailed: false, reason: 'timeout' }
+      if (res.error) {
+        let reason = 'error'
+        try { const j = await (res.error.context as Response).clone().json(); reason = j?.reason ?? (res.error.context as Response).status + '' } catch { reason = res.error.message ?? 'error' }
+        return { emailed: false, reason }
+      }
+      return res.data?.sent ? { emailed: true, to: res.data.to } : { emailed: false, reason: res.data?.reason ?? 'unknown' }
+    } catch (e) { return { emailed: false, reason: (e as Error).message?.slice(0, 60) ?? 'error' } }
   }
   async function removeFromPlan(id: string) {
     check(await db().from('plan_items').delete().eq('id', id))

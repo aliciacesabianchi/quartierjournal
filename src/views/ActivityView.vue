@@ -61,7 +61,7 @@ async function add(item: { template_id?: string; occurrence_id?: string }) {
   message.value = null
   try {
     const r = await me.addToPlan({ activity_id: a.value.id, ...item })
-    message.value = { kind: 'ok', text: t('activity.planNote') + (r.emailed ? ' ' + t('ui.plan.emailSent', { email: r.to ?? '' }) : '') }
+    message.value = { kind: 'ok', text: t('activity.planNote') + (r.emailed ? ' ' + t('ui.plan.emailSent', { email: r.to ?? '' }) : (r.reason && !['opted_out', 'already_sent'].includes(r.reason) ? ' ' + t('ui.plan.emailFailed', { reason: r.reason }) : '')) }
   } catch (e) {
     message.value = { kind: 'error', text: t('auth.errors.generic', { msg: (e as Error).message }) }
   } finally { busy.value = null }

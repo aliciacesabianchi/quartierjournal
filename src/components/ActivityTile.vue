@@ -8,6 +8,8 @@ import { useAuth } from '@/stores/auth'
 import { useMe } from '@/stores/me'
 import { appUrl } from '@/lib/supabase'
 import { publicNote } from '@/domain/filters'
+import { googleCalendarUrl } from '@/domain/ics'
+import { icsLabels } from '@/lib/calendar'
 import { shareText, whatsappUrl } from '@/domain/share'
 import { todayInZurich } from '@/domain/time'
 import { tileFor } from '@/domain/taxonomy'
@@ -21,6 +23,11 @@ const router = useRouter()
 const busy = ref(false)
 const failed = ref<string | null>(null)
 const askLogin = ref(false)
+/** Google Calendar links for the slots of this activity that are in the user's plan. */
+const planGcal = computed(() => me.plan.filter((p) => p.activity_id === props.a.id).map((p) => {
+  const tp = props.a.templates.find((x) => x.id === p.template_id); const oc = props.a.upcoming.find((x) => x.id === p.occurrence_id)
+  return googleCalendarUrl({ activity: props.a, template: tp, occurrence: oc }, icsLabels(t), { appUrl: appUrl() })
+}).filter((x): x is string => !!x))
 const sentNote = ref<string | null>(null)
 const expanded = ref(false)
 const showAll = ref(false)
@@ -58,7 +65,7 @@ async function addToPlan() {
   if (!auth.loggedIn) { askLogin.value = !askLogin.value; return }
   if (planned.value || slots.value.length !== 1) return router.push({ name: 'activity', params: { id: props.a.id } })
   busy.value = true
-  try { const r = await me.addToPlan({ activity_id: props.a.id, ...slots.value[0]! }); if (r.emailed) { sentNote.value = t('ui.plan.emailSent', { email: r.to ?? '' }); setTimeout(() => { sentNote.value = null }, 8000) } }
+  try { const r = await me.addToPlan({ activity_id: props.a.id, ...slots.value[0]! }); sentNote.value = r.emailed ? t('ui.plan.emailSent', { email: r.to ?? '' }) : (r.reason && !['opted_out', 'already_sent'].includes(r.reason) ? t('ui.plan.emailFailed', { reason: r.reason }) : null); if (sentNote.value) setTimeout(() => { sentNote.value = null }, 12000) }
   catch (e) { failed.value = t('auth.errors.generic', { msg: (e as Error).message }) }
   finally { busy.value = false }
 }
@@ -154,6 +161,7 @@ async function share() {
         </div>
       </div>
       <p v-if="sentNote" class="tiny" role="status" style="margin: 0">✉ {{ sentNote }}</p>
+      <p v-for="(g, i) in planGcal" :key="i" class="tiny" style="margin: 0"><a :href="g" target="_blank" rel="noopener">📅 {{ $t('ui.plan.calendar') }}</a></p>
       <p v-if="failed" class="tiny err" role="alert">{{ failed }}</p>
     </div>
   </article>

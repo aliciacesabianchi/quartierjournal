@@ -5,7 +5,7 @@ import { useMe } from '@/stores/me'
 import { useCatalogue } from '@/stores/catalogue'
 import { useFormat } from '@/composables/useFormat'
 import { fitsFreeTime, isVerified, sortCards } from '@/domain/filters'
-import { buildIcs, type IcsItem } from '@/domain/ics'
+import { buildIcs, googleCalendarUrl, type IcsItem } from '@/domain/ics'
 import { addDays, hhmm, isoWeekday, toMinutes, todayInZurich } from '@/domain/time'
 import type { CareBlock, TemplateSlot, Occurrence, Weekday } from '@/domain/types'
 import { downloadIcs, icsLabels } from '@/lib/calendar'
@@ -130,6 +130,7 @@ const monthHasItems = computed(() => monthCells.value.some((c) => c.inMonth && c
 
 // ───────────── plan list, export, ideas ─────────────
 const label = (r: Row) => (r.oc ? t('week.dated', { date: f.date(r.oc.date) }) : r.tp?.recurrence === 'selected_dates' ? t('week.selected') : t('week.weekly'))
+const gcal = (r: Row) => (r.a && (r.tp || r.oc) ? googleCalendarUrl({ activity: r.a, template: r.tp, occurrence: r.oc }, icsLabels(t), { appUrl: appUrl() }) : null)
 function exportPlan() {
   const items: IcsItem[] = planRows.value.filter((r) => r.a && (r.tp || r.oc)).map((r) => ({ activity: r.a!, template: r.tp, occurrence: r.oc }))
   downloadIcs(buildIcs(items, icsLabels(t), { appUrl: appUrl() }), 'quartierjournal-plan')
@@ -244,6 +245,7 @@ watch(narrow, () => { page.value = 0 })
               <span v-if="r.oc && r.oc.date < today" class="badge">{{ $t('week.past') }}</span>
             </span>
             <span class="row">
+              <a v-if="gcal(r)" class="btn small" :href="gcal(r)!" target="_blank" rel="noopener">📅 {{ $t('ui.plan.calendar') }}</a>
               <RouterLink v-if="r.a" class="btn small" :to="{ name: 'activity', params: { id: r.a.id } }">{{ $t('ui.week.open') }}</RouterLink>
               <button class="btn small" @click="run(() => me.removeFromPlan(r.p.id))">{{ $t('week.remove') }}</button>
             </span>
