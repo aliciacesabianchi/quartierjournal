@@ -69,7 +69,8 @@ Deno.serve(async (req) => {
     await fetch(`${SB}/rest/v1/email_log`, { method: 'POST', headers: { apikey: SERVICE, Authorization: `Bearer ${SERVICE}`, 'Content-Type': 'application/json', Prefer: 'return=minimal' }, body: JSON.stringify({ user_id: user.id, kind: 'plan_confirmation', plan_item_id }) })
     return json({ sent: true, to: user.email })
   } catch (e) {
-    console.error('plan-confirmation', (e as Error).message)
-    return json({ sent: false, reason: 'error' }, 500)
+    const detail = (e as Error).message?.slice(0, 120) ?? 'unknown'
+    console.error('plan-confirmation', detail)
+    return json({ sent: false, reason: 'error', detail }, 500)
   }
 })

@@ -119,7 +119,7 @@ export const useMe = defineStore('me', () => {
       if (!res) return { emailed: false, reason: 'timeout' }
       if (res.error) {
         let reason = 'error'
-        try { const j = await (res.error.context as Response).clone().json(); reason = j?.reason ?? (res.error.context as Response).status + '' } catch { reason = res.error.message ?? 'error' }
+        try { const j = await (res.error.context as Response).clone().json(); reason = j?.detail ? `${j.reason}: ${j.detail}` : (j?.reason ?? (res.error.context as Response).status + '') } catch { reason = res.error.message ?? 'error' }
         return { emailed: false, reason }
       }
       return res.data?.sent ? { emailed: true, to: res.data.to } : { emailed: false, reason: res.data?.reason ?? 'unknown' }

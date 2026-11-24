@@ -22,9 +22,9 @@ except Exception: mig = None
 if not isinstance(mig, list):
     print('FAIL cannot read the project (token invalid or wrong project ref):', mig_raw[:200]); sys.exit(2)
 names = [m.get('name') for m in mig]
-for want in ('core_schema', 'rls_and_functions', 'feed_enum', 'feed_data', 'images_and_districts', 'district_basis_address', 'place_visit_info', 'plan_email', 'occurrence_note_in_cards'):
+for want in ('core_schema', 'rls_and_functions', 'feed_enum', 'feed_data', 'images_and_districts', 'district_basis_address', 'place_visit_info', 'plan_email', 'occurrence_note_in_cards', 'email_log_service_grants'):
     chk('PASS' if want in names else 'FAIL', f'migration applied: {want}')
-extra = [n for n in names if n not in ('core_schema', 'rls_and_functions', 'feed_enum', 'feed_data', 'images_and_districts', 'district_basis_address', 'place_visit_info', 'plan_email', 'occurrence_note_in_cards')]
+extra = [n for n in names if n not in ('core_schema', 'rls_and_functions', 'feed_enum', 'feed_data', 'images_and_districts', 'district_basis_address', 'place_visit_info', 'plan_email', 'occurrence_note_in_cards', 'email_log_service_grants')]
 if extra: chk('INFO', 'additional migrations recorded', ', '.join(map(str, extra)))
 a = json.loads(auth_raw)
 site = a.get('site_url') or ''
