@@ -22,9 +22,9 @@ except Exception: mig = None
 if not isinstance(mig, list):
     print('FAIL cannot read the project (token invalid or wrong project ref):', mig_raw[:200]); sys.exit(2)
 names = [m.get('name') for m in mig]
-for want in ('core_schema', 'rls_and_functions', 'feed_enum', 'feed_data', 'images_and_districts', 'district_basis_address', 'place_visit_info'):
+for want in ('core_schema', 'rls_and_functions', 'feed_enum', 'feed_data', 'images_and_districts', 'district_basis_address', 'place_visit_info', 'plan_email'):
     chk('PASS' if want in names else 'FAIL', f'migration applied: {want}')
-extra = [n for n in names if n not in ('core_schema', 'rls_and_functions', 'feed_enum', 'feed_data', 'images_and_districts', 'district_basis_address', 'place_visit_info')]
+extra = [n for n in names if n not in ('core_schema', 'rls_and_functions', 'feed_enum', 'feed_data', 'images_and_districts', 'district_basis_address', 'place_visit_info', 'plan_email')]
 if extra: chk('INFO', 'additional migrations recorded', ', '.join(map(str, extra)))
 a = json.loads(auth_raw)
 site = a.get('site_url') or ''
@@ -59,7 +59,7 @@ if isinstance(d, dict): print("FAIL", d.get("message","")[:300]); sys.exit(1)
 r = d[0]["r"]; bad = False
 def chk(ok, name, det=""):
     global bad; bad |= not ok; print(("PASS " if ok else "FAIL ") + name + (f"  [{det}]" if det else ""))
-chk(r["tables"] == 26, "26 tables in public (incl. coverage_checks)", r["tables"])
+chk(r["tables"] == 27, "27 tables in public (incl. coverage_checks, email_log)", r["tables"])
 chk(r["migration3"] == 4, "migration 3 applied (feed columns present)", r["migration3"])
 chk(not r["no_rls"], "row-level security on and forced for every table", r["no_rls"])
 chk(r["anon_writes"] == 0, "anonymous visitors cannot write anywhere", r["anon_writes"])
