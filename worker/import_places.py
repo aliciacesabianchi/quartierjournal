@@ -21,7 +21,7 @@ PLACES = [
   hours='Di–So 10–17 Uhr · Montag geschlossen. 24.12.2026 bis 14 Uhr. Geschlossen am 19.4.2027 (Sechseläuten) und 13.9.2027 (Knabenschiessen).',
   admission='Kinder und Jugendliche bis 16 Jahre: Eintritt frei. Erwachsene: Preise auf landesmuseum.ch/tickets.',
   free='Kinder und Jugendliche bis 16 Jahre haben immer freien Eintritt.',
-  tips='Familienausstellung mit drei Themenräumen (Orient, Schifffahrt, Eisenbahn). Mittwoch- und Samstagnachmittag: interaktiv erzählte Geschichte auf Sitzkissen. Mit dem Entdeckungskoffer können Kinder das Museum auf eigene Faust erkunden. Hinweise zum Kinderwagen: auf der Website unter «Mit dem Kinderwagen ins Museum».'),
+  tips='Familienausstellung mit drei Themenräumen (Orient, Schifffahrt, Eisenbahn). Mittwoch- und Samstagnachmittag: interaktiv erzählte Geschichte auf Sitzkissen. Mit dem Entdeckungskoffer können Kinder das Museum auf eigene Faust erkunden. Die Familienangebote im Flyer (November 2026 bis Januar 2027) sind für Kinder ab 4 bis 5 Jahren, zum Beispiel «Globi im Museum» (4–9 Jahre) und «Eine wunderbare Geschichte mit dem Kamishibai» (5–9 Jahre, mittwochs 13.30–14.30); Anmeldung erwünscht: Tel. 044 218 66 00 (Mo–Fr 9–12.30). Hinweise zum Kinderwagen: auf der Website unter «Mit dem Kinderwagen ins Museum».'),
  dict(name='Naturhistorisches Museum der Universität Zürich', kind='Museum', address='Karl-Schmid-Strasse 4, 8006 Zürich', url='https://www.nmz.uzh.ch/de/besucherinformation.html',
   hours='Di–So 10–17 Uhr · Donnerstagabend 17.30–20 Uhr (nur für Erwachsene) · Montag geschlossen. Geschlossen: 24.–26.12., 31.12.–2.1., Ostermontag, Pfingstmontag, 1. Mai, 1. August.',
   admission='Eintritt frei (eine Spende in die «Exit-Pricing-Box» ist erwünscht).',

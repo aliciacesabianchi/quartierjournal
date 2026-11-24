@@ -60,3 +60,13 @@ select v.id::uuid, v.url, v.name, v.note, 'worker', 'new' from (values
  ('a1000000-0000-5000-8000-00000000001e','http://kndkids.ch/','KND Kids','Web address does not exist any more. Possibly closed or moved.'),
  ('a1000000-0000-5000-8000-00000000001f','http://www.makingthings.ch/','Making Things','Web address does not exist any more. Possibly closed or moved.')
 ) as v(id, url, name, note) where not exists (select 1 from public.leads l where l.id = v.id::uuid);
+
+-- 2026-11-24: leads that were found on platform/tourism pages now point to the provider's OWN page (the platform is only for finding providers).
+update public.leads set url = 'https://www.kulturama.ch/besuchen/', status_note = 'Details taken from the museum''s own website (found via the tourism page).' where name like 'Kulturama%';
+update public.leads set url = 'https://www.muehlerama.ch/ihr-besuch', status_note = 'Details taken from the museum''s own website (found via the tourism page).' where name = 'Mühlerama';
+update public.leads set url = 'https://www.nmz.uzh.ch/de/besucherinformation.html', status_note = 'Details taken from the museum''s own website (found via the tourism page).' where name like 'Naturhistorisches Museum%';
+update public.leads set url = 'https://www.stadt-zuerich.ch/nonam/de/museumsbesuch.html', status_note = 'Details taken from the museum''s own website (found via the tourism page).' where name like 'NONAM%';
+update public.leads set url = 'https://www.tram-museum.ch/museum/preise', status_note = 'Details taken from the museum''s own website (found via the tourism page).' where name like 'Tram-Museum%';
+update public.leads set url = 'https://zoo.ch/zoobesuch/oeffnungszeiten', status_note = 'Hours from the zoo''s own website; prices load dynamically there (link given).' where name = 'Zoo Zürich';
+update public.leads set url = 'https://utokulm.ch/anreise', status = 'accepted', checked_on = '2026-11-24', status_note = 'Added as a place from the SZU and Uto Kulm websites.' where name like 'Uetliberg%';
+update public.leads set status = 'rejected', status_note = 'Directory / platform, not a provider. Use only to find providers; never copy its listings.' where name in ('Abenteuerspielplätze (Liste)', 'Indoor-Spielplätze Zürich (Verzeichnis)', 'PLAYGROUNDS.ch (Spielplatz-Verzeichnis)', 'Kinderregion.ch – Zürich (Verzeichnis)');
