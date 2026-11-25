@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
+import { db } from '@/lib/supabase'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAuth } from '@/stores/auth'
@@ -11,6 +12,20 @@ const auth = useAuth()
 const me = useMe()
 const router = useRouter()
 const menuOpen = ref(false)
+// number of things waiting for the admin's decision (only fetched for admins)
+const todo = ref(0)
+async function countTodo() {
+  if (!auth.isAdmin) { todo.value = 0; return }
+  const s = db()
+  const [l, p, d] = await Promise.all([
+    s.from('leads').select('id', { count: 'exact', head: true }).eq('origin', 'user').in('status', ['new', 'matched', 'in_review']),
+    s.from('proposals').select('id', { count: 'exact', head: true }).in('status', ['pending', 'approved']),
+    s.from('activities').select('id', { count: 'exact', head: true }).eq('status', 'draft'),
+  ])
+  todo.value = (l.count ?? 0) + (p.count ?? 0) + (d.count ?? 0)
+}
+watch(() => auth.isAdmin, () => { void countTodo() }, { immediate: true })
+watch(menuOpen, (o) => { if (o) void countTodo() })
 
 async function changeLang(e: Event) {
   const l = (e.target as HTMLSelectElement).value as Locale
@@ -45,7 +60,7 @@ async function logout() {
         <RouterLink v-if="!auth.loggedIn" :to="{ name: 'login' }" class="btn accent small">{{ $t('nav.login') }}</RouterLink>
         <div v-else class="acct">
           <button class="btn accent small" :aria-expanded="menuOpen" aria-haspopup="menu" @click="menuOpen = !menuOpen">
-            {{ me.profile?.display_name || $t('nav.account') }}<span v-if="auth.isAdmin" class="adm">{{ $t('soc.adminBadge') }}</span> ▾
+            {{ me.profile?.display_name || $t('nav.account') }}<span v-if="auth.isAdmin" class="adm">{{ $t('soc.adminBadge') }}</span><span v-if="todo" class="adm todo" :title="$t('soc.adminTodo')">{{ todo }}</span> ▾
           </button>
           <div v-if="menuOpen" class="scrim" @click="menuOpen = false" />
           <div v-if="menuOpen" class="menu" role="menu" @click="menuOpen = false">
@@ -56,7 +71,7 @@ async function logout() {
             <div v-if="auth.isAdmin" class="admin" role="group" :aria-label="$t('soc.adminSection')">
               <strong class="ah">{{ $t('soc.adminSection') }} <span class="adm">{{ $t('soc.adminBadge') }}</span></strong>
               <span class="tiny muted">{{ $t('soc.adminHint') }}</span>
-              <RouterLink role="menuitem" :to="{ name: 'admin' }">{{ $t('soc.adminReview') }}</RouterLink>
+              <RouterLink role="menuitem" :to="{ name: 'admin' }">{{ $t('soc.adminReview') }}<span v-if="todo" class="adm todo">{{ todo }}</span></RouterLink>
             </div>
             <button role="menuitem" @click.stop="logout">{{ $t('nav.logout') }}</button>
           </div>
@@ -70,6 +85,7 @@ async function logout() {
 .hd { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px 12px; padding: 18px 0 10px; border-bottom: 1px solid var(--ink); }
 .adm { background: var(--ink); color: #fff; border-radius: var(--pill); padding: 1px 8px; font-size: 11px; letter-spacing: .04em; text-transform: uppercase; }
 .admin { display: grid; gap: 2px; margin-top: 6px; padding: 10px 12px 4px; border-top: 1px solid var(--line); background: #faf6ee; border-radius: 12px; }
+.adm.todo { background: var(--magenta); margin-left: 6px; }
 .ah { display: flex; gap: 8px; align-items: center; font-weight: 500; }
 .acct .btn { display: inline-flex; align-items: center; gap: 8px; }
 .brand { display: flex; flex-direction: column; text-decoration: none; line-height: 1.1; }

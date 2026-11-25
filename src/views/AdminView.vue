@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // Admin review. Every action here is also enforced server-side by RLS / app.is_admin().
-import { onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { db } from '@/lib/supabase'
 import { useAuth } from '@/stores/auth'
@@ -13,7 +13,15 @@ const cat = useCatalogue()
 const f = useFormat()
 
 type Tab = 'leads' | 'proposals' | 'drafts' | 'runs'
+const view = ref<'todo' | 'ref'>('todo')   // 'todo' = only what needs the owner; 'ref' = everything else, for reference
 const tab = ref<Tab>('leads')
+const todoDrafts = ref<any[]>([])
+// Needs the owner: suggestions from people (not our own research notes), proposed changes, drafts waiting to be published
+const OPEN = ['new', 'matched', 'in_review']
+const todoLeads = computed(() => leads.value.filter((l) => l.origin === 'user' && OPEN.includes(l.status)))
+const todoCount = computed(() => todoLeads.value.length + proposals.value.length + todoDrafts.value.length)
+const leadList = computed(() => (view.value === 'todo' ? todoLeads.value : leads.value))
+const draftRows = computed(() => (view.value === 'todo' ? todoDrafts.value : drafts.value))
 const leads = ref<any[]>([])
 const proposals = ref<any[]>([])
 const drafts = ref<any[]>([])
@@ -38,6 +46,8 @@ async function load() {
   if (err) { msg.value = { kind: 'error', text: err.message }; return }
   leads.value = l.data!; proposals.value = p.data!; runs.value = r.data!; checks.value = c.data!
   await loadDrafts()
+  const td = await s.from('activities').select('id, title, status, verification, last_checked_on, data_origin, venue_id, venues(name, status)').eq('status', 'draft').order('title').limit(50)
+  todoDrafts.value = td.data ?? []
   payloads.value = Object.fromEntries(p.data!.map((x: any) => [x.id, JSON.stringify(x.payload, null, 2)]))
 }
 async function loadDrafts() {
@@ -102,17 +112,24 @@ async function setPublished(a: any, publish: boolean) {
     <p v-if="!auth.isAdmin" class="notice">{{ $t('admin.notAdmin') }}</p>
     <template v-else>
       <div class="chips" role="tablist">
-        <button v-for="tb in (['leads', 'proposals', 'drafts', 'runs'] as Tab[])" :key="tb" role="tab" class="chip" :aria-selected="tab === tb" :aria-pressed="tab === tb" @click="tab = tb">
+        <button role="tab" class="chip" :aria-selected="view === 'todo'" :aria-pressed="view === 'todo'" @click="view = 'todo'">{{ $t('soc.adminTodo') }} ({{ todoCount }})</button>
+        <button role="tab" class="chip" :aria-selected="view === 'ref'" :aria-pressed="view === 'ref'" @click="view = 'ref'">{{ $t('soc.adminEverything') }}</button>
+      </div>
+      <p v-if="view === 'todo'" class="small muted" style="margin: 0">{{ $t('soc.adminTodoNote') }}</p>
+      <div v-if="view === 'ref'" class="chips" role="tablist">
+        <button v-for="tb in (['leads', 'proposals', 'drafts', 'runs'] as Tab[])" :key="tb" role="tab" class="chip small" :aria-selected="tab === tb" :aria-pressed="tab === tb" @click="tab = tb">
           {{ $t(`admin.${tb}`) }}
-          <span v-if="tb === 'leads'">({{ leads.filter((l) => l.status === 'new').length }})</span>
+          <span v-if="tb === 'leads'">({{ leads.length }})</span>
           <span v-if="tb === 'proposals'">({{ proposals.length }})</span>
         </button>
       </div>
+      <p v-if="view === 'todo' && !todoCount" class="notice" role="status">✓ {{ $t('soc.adminNothing') }}</p>
       <div v-if="msg" class="notice" :class="msg.kind" role="status">{{ msg.text }}</div>
 
-      <section v-if="tab === 'leads'" class="stack">
-        <p v-if="!leads.length" class="muted">{{ $t('admin.none') }}</p>
-        <article v-for="l in leads" :key="l.id" class="panel stack" style="gap: 6px">
+      <section v-if="(view === 'todo' && leadList.length) || (view === 'ref' && tab === 'leads')" class="stack">
+        <h2 v-if="view === 'todo'" class="sh">{{ $t('soc.adminTodoLeads') }}</h2>
+        <p v-if="!leadList.length" class="muted">{{ $t('admin.none') }}</p>
+        <article v-for="l in leadList" :key="l.id" class="panel stack" style="gap: 6px">
           <strong>{{ l.name || l.url }}</strong>
           <a v-if="l.url" :href="l.url" target="_blank" rel="noopener noreferrer" class="small" style="word-break: break-all">{{ l.url }}</a>
           <p v-if="l.note" class="small" style="margin: 0">{{ l.note }}</p>
@@ -125,7 +142,8 @@ async function setPublished(a: any, publish: boolean) {
         </article>
       </section>
 
-      <section v-if="tab === 'proposals'" class="stack">
+      <section v-if="(view === 'todo' && proposals.length) || (view === 'ref' && tab === 'proposals')" class="stack">
+        <h2 v-if="view === 'todo'" class="sh">{{ $t('admin.proposals') }}</h2>
         <p v-if="!proposals.length" class="muted">{{ $t('admin.none') }}</p>
         <article v-for="p in proposals" :key="p.id" class="panel stack">
           <strong>{{ p.action }} · {{ p.target_table }}<template v-if="p.target_id"> · {{ p.target_id }}</template></strong>
@@ -139,8 +157,9 @@ async function setPublished(a: any, publish: boolean) {
         </article>
       </section>
 
-      <section v-if="tab === 'drafts'" class="stack">
-        <div class="row">
+      <section v-if="(view === 'todo' && todoDrafts.length) || (view === 'ref' && tab === 'drafts')" class="stack">
+        <h2 v-if="view === 'todo'" class="sh">{{ $t('soc.adminTodoDrafts') }}</h2>
+        <div v-if="view === 'ref'" class="row">
           <select v-model="draftFilter" class="input" style="width: auto" aria-label="filter">
             <option value="drafts">{{ $t('ui.admin.showDrafts') }}</option>
             <option value="feed">{{ $t('ui.admin.showFeed') }}</option>
@@ -148,11 +167,11 @@ async function setPublished(a: any, publish: boolean) {
           </select>
           <input v-model.trim="draftQuery" type="search" class="input pill" :placeholder="$t('ui.admin.search')" style="flex: 1 1 220px; max-width: 360px" />
         </div>
-        <p v-if="drafts.length >= DRAFT_LIMIT" class="tiny muted">{{ $t('ui.admin.limited', { n: DRAFT_LIMIT }) }}</p>
-        <p v-if="!drafts.length" class="muted">{{ $t('admin.none') }}</p>
+        <p v-if="view === 'ref' && drafts.length >= DRAFT_LIMIT" class="tiny muted">{{ $t('ui.admin.limited', { n: DRAFT_LIMIT }) }}</p>
+        <p v-if="!draftRows.length" class="muted">{{ $t('admin.none') }}</p>
         <table class="tbl">
           <tbody>
-            <tr v-for="a in drafts" :key="a.id">
+            <tr v-for="a in draftRows" :key="a.id">
               <td><RouterLink :to="{ name: 'activity', params: { id: a.id } }">{{ a.title }}</RouterLink><div class="tiny muted">{{ a.venues?.name }}</div></td>
               <td><span class="badge" :class="a.verification === 'provider_verified' ? 'ok' : 'warn'">{{ $t(`card.verification.${a.verification}`) }}</span></td>
               <td class="small">{{ a.last_checked_on ?? '—' }}</td>
@@ -168,7 +187,7 @@ async function setPublished(a: any, publish: boolean) {
         </table>
       </section>
 
-      <section v-if="tab === 'runs'" class="stack">
+      <section v-if="view === 'ref' && tab === 'runs'" class="stack">
         <ul class="log">
           <li v-for="r in runs" :key="r.id"><strong>{{ r.run_date }}</strong> · {{ r.description }} <span class="tiny muted">({{ r.origin }})</span></li>
         </ul>
@@ -182,6 +201,7 @@ async function setPublished(a: any, publish: boolean) {
 </template>
 
 <style scoped>
+.sh { font-size: 24px; font-weight: 400; }
 .mono { font-family: ui-monospace, monospace; font-size: 13px; }
 .tbl { width: 100%; border-collapse: collapse; }
 .tbl td { padding: 10px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
