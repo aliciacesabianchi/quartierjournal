@@ -252,6 +252,8 @@ set role authenticated;
 select set_config('request.jwt.claims', '{"sub":"bbbbbbbb-0000-0000-0000-00000000000b"}', false);
 select test.expect_denied('select public.admin_stats()', 'a normal user cannot read the admin statistics');
 select test.expect_denied('select public.admin_sources()', 'a normal user cannot read source numbers');
+select test.expect((select count(*) from public.discovered_listings) = 0, 'a normal user cannot read discovered listings');
+select test.expect_denied($$insert into public.discovered_listings (source_url, event_key, title) values ('https://x.test', 'k', 't')$$, 'a normal user cannot write discovered listings');
 select test.expect((select count(*) from public.admin_settings where key = 'crawl_secret') = 0, 'a normal user cannot read the schedule secret');
 select test.expect((select count(*) from public.admin_settings) = 0, 'a normal user cannot read admin settings');
 select test.expect_denied($$insert into public.admin_settings (key, value) values ('x', 'y')$$, 'a normal user cannot write admin settings');

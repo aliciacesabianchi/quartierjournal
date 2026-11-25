@@ -19,14 +19,19 @@ const tab = ref<Tab>('leads')
 const todoDrafts = ref<any[]>([])
 // watched sources: the daily job only notes "changed since last review"; reading the page and proposing entries is done on request
 const sources = ref<any[]>([])
-const srcInfo = ref<{ active: number; paused: number; changed_unreviewed: number; failing: number; last_check: string | null } | null>(null)
+const found = ref<any[]>([])
+const srcInfo = ref<{ active: number; paused: number; changed_unreviewed: number; failing: number; last_check: string | null; new_listings: number; new_from_providers: number } | null>(null)
 async function loadSources() {
   const [l, n] = await Promise.all([
     db().from('crawl_targets').select('id, url, scope, status, last_success_at, last_changed_at, reviewed_at, last_note, fail_streak, interval_days').order('last_changed_at', { ascending: false, nullsFirst: false }).limit(100),
     db().rpc('admin_sources'),
   ])
   sources.value = l.data ?? []; srcInfo.value = (n.data as typeof srcInfo.value) ?? null
+  const fl = await db().from('discovered_listings').select('id, title, start_date, start_time, location_text, event_url, source_url, field_main, from_provider, rrule')
+    .eq('status', 'new').or(`start_date.gte.${new Date().toISOString().slice(0, 10)},start_date.is.null,rrule.not.is.null`).order('start_date', { nullsFirst: false }).limit(100)
+  found.value = fl.data ?? []
 }
+const ignoreFound = (id: string) => act(() => db().from('discovered_listings').update({ status: 'ignored' }).eq('id', id), t('common.saved')).then(loadSources)
 const isChanged = (x: any) => x.last_changed_at && (!x.reviewed_at || x.reviewed_at < x.last_changed_at)
 const markReviewed = (id: string) => act(() => db().from('crawl_targets').update({ reviewed_at: new Date().toISOString() }).eq('id', id), t('common.saved')).then(loadSources)
 const setSourceStatus = (id: string, status: string) => act(() => db().from('crawl_targets').update({ status, fail_streak: 0 }).eq('id', id), t('common.saved')).then(loadSources)
@@ -206,6 +211,7 @@ async function setPublished(a: any, publish: boolean) {
             <div class="tile"><strong>{{ stats.catalogue.providers_with_offers }}</strong><span>{{ $t('soc.sProviders') }}</span></div>
             <div class="tile"><strong>{{ stats.catalogue.stale_90d }}</strong><span>{{ $t('soc.sStale') }}</span></div>
             <div class="tile"><strong>{{ stats.leads.open_from_people }}</strong><span>{{ $t('soc.sOpenLeads') }}</span></div>
+            <div v-if="srcInfo" class="tile"><strong>{{ srcInfo.new_listings }}</strong><span>{{ $t('soc.sNewFound') }}</span></div>
             <div v-if="srcInfo" class="tile"><strong>{{ srcInfo.changed_unreviewed }}</strong><span>{{ $t('soc.sSrcChanged') }}</span></div>
             <div v-if="srcInfo" class="tile"><strong>{{ srcInfo.failing }}</strong><span>{{ $t('soc.sSrcFailing') }}</span></div>
             <div class="tile"><strong>{{ stats.catalogue.last_refresh ? f.date(stats.catalogue.last_refresh, { day: 'numeric', month: 'numeric', year: 'numeric' }) : '—' }}</strong><span>{{ $t('soc.sLastRefresh') }}</span></div>
@@ -287,6 +293,20 @@ async function setPublished(a: any, publish: boolean) {
 
       <section v-if="view === 'ref' && tab === 'sources'" class="stack">
         <p class="small muted" style="margin: 0">{{ $t('soc.srcNote') }}</p>
+        <h2 class="sh">{{ $t('soc.foundTitle') }} ({{ found.length }})</h2>
+        <p class="small muted" style="margin: 0">{{ $t('soc.foundNote') }}</p>
+        <p v-if="!found.length" class="muted">{{ $t('admin.none') }}</p>
+        <table v-else class="tbl">
+          <tbody>
+            <tr v-for="x in found" :key="x.id">
+              <td><strong>{{ x.title }}</strong><div class="tiny muted">{{ x.location_text }}</div></td>
+              <td class="small">{{ x.start_date ? f.date(x.start_date, { day: 'numeric', month: 'numeric', year: 'numeric' }) : '—' }} {{ x.start_time ? x.start_time.slice(0, 5) : '' }}<div v-if="x.rrule" class="tiny muted">{{ $t('soc.foundRepeats') }}</div></td>
+              <td><span class="badge" :class="x.from_provider ? 'ok' : 'warn'">{{ x.from_provider ? $t('soc.foundProvider') : $t('soc.foundAggregator') }}</span><div class="tiny muted">{{ x.field_main ? $t(`tax.main.${x.field_main}`) : '' }}</div></td>
+              <td><span class="row"><a v-if="x.event_url" class="btn small" :href="x.event_url" target="_blank" rel="noopener noreferrer">↗</a><button class="btn small" @click="ignoreFound(x.id)">{{ $t('soc.foundIgnore') }}</button></span></td>
+            </tr>
+          </tbody>
+        </table>
+        <h2 class="sh">{{ $t('soc.srcTitle') }}</h2>
         <p v-if="!sources.length" class="muted">{{ $t('admin.none') }}</p>
         <table class="tbl">
           <tbody>

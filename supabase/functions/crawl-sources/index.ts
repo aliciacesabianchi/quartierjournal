@@ -1,13 +1,14 @@
 // Source watcher. Runs once a day (database schedule) and checks only the few sources that are DUE.
 // It changes nothing in the public catalogue: it only records "this page changed since you last looked" so that new
 // offers can be read from the provider's own page and proposed for approval.
-import { BOT_NAME, PAUSE_AFTER_FAILURES, failureInterval, looksLikeIcs, nextInterval, normalizeHtml, normalizeIcs, robotsAllows, sha256 } from '../_shared/crawl.ts'
+import { BOT_NAME, FAMILY_WORDS, PAUSE_AFTER_FAILURES, failureInterval, looksLikeIcs, nextInterval, normTitle, normalizeHtml, normalizeIcs, parseIcsEvents, parseJsonLdEvents, robotsAllows, sha256 } from '../_shared/crawl.ts'
+import { classify } from '../_shared/taxonomy.ts'
 
 const SB = Deno.env.get('SUPABASE_URL')!
 const KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 const H = { apikey: KEY, Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json' }
 const MAX_PER_RUN = 8          // few requests per run: friendly to the sites, light on our free limits
-const MAX_BYTES = 300_000      // never read more than this from a page
+const MAX_BYTES = 600_000      // never read more than this from a page
 const TIMEOUT_MS = 10_000
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
@@ -46,6 +47,37 @@ async function allowedByRobots(u: URL): Promise<boolean> {
 
 interface Target { id: string; url: string; interval_days: number; base_interval_days: number | null; etag: string | null; last_modified: string | null; content_hash: string | null; unchanged_streak: number; fail_streak: number; last_changed_at: string | null; last_success_at: string | null }
 
+let knownTitles: Set<string> | null = null
+async function known(): Promise<Set<string>> {
+  if (!knownTitles) {
+    const rows: { title: string }[] = await rest('activities?select=title&status=eq.published&limit=5000')
+    knownTitles = new Set(rows.map((r) => normTitle(r.title)))
+  }
+  return knownTitles
+}
+const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Zurich' }).format(new Date())
+
+/** Candidates only: new rows in discovered_listings. Already-known titles are marked duplicate; past one-off dates are skipped. */
+async function discover(t: Target, body: string, isIcs: boolean): Promise<number> {
+  const host = (() => { try { return new URL(t.url).host.replace(/^www\./, '') } catch { return '' } })()
+  const aggregator = host === 'chreis.plus'           // an aggregator feed: its entries still need the provider's own page
+  const found = (isIcs ? parseIcsEvents(body) : parseJsonLdEvents(body, t.url))
+    .filter((e) => !e.start_date || e.start_date >= today || e.rrule)
+    .filter((e) => FAMILY_WORDS.test(`${e.title} ${e.description ?? ''}`) || classify({ title: e.title, category: null }))   // only things about children / families
+    .slice(0, 300)
+  if (!found.length) return 0
+  const titles = await known()
+  const rows = found.map((e) => ({
+    source_id: t.id, source_url: t.url, event_key: e.key.slice(0, 300), title: e.title.slice(0, 300), start_date: e.start_date, start_time: e.start_time, end_time: e.end_time,
+    location_text: e.location_text?.slice(0, 300) ?? null, description: e.description, event_url: e.event_url, rrule: e.rrule?.slice(0, 300) ?? null,
+    field_main: classify({ title: e.title, category: null })?.main ?? null, from_provider: !aggregator,
+    status: titles.has(normTitle(e.title)) ? 'duplicate' : 'new',
+  }))
+  const res = await fetch(`${SB}/rest/v1/discovered_listings?on_conflict=source_url,event_key`, { method: 'POST', headers: { ...H, Prefer: 'resolution=ignore-duplicates,return=representation' }, body: JSON.stringify(rows) })
+  if (!res.ok) throw new Error(`discovered_listings ${res.status}`)
+  return ((await res.json()) as { status: string }[]).filter((r) => r.status === 'new').length
+}
+
 async function check(t: Target) {
   const base = t.base_interval_days ?? t.interval_days
   const now = new Date().toISOString()
@@ -55,13 +87,14 @@ async function check(t: Target) {
     if (!/^https?:$/.test(u.protocol)) throw new Error('not http(s)')
     if (!(await allowedByRobots(u))) {
       Object.assign(patch, { last_note: 'Not checked: robots.txt asks bots to stay away', interval_days: 28, last_success_at: now })
-      return { outcome: 'skipped', patch }
+      return { outcome: 'skipped', patch, found: 0 }
     }
     const headers: Record<string, string> = { 'User-Agent': `${BOT_NAME} (+https://quartierjournal.pages.dev)`, Accept: 'text/html,text/calendar,*/*;q=0.5' }
     if (t.etag) headers['If-None-Match'] = t.etag
     if (t.last_modified) headers['If-Modified-Since'] = t.last_modified
     const res = await fetch(t.url, { headers, redirect: 'follow', signal: AbortSignal.timeout(TIMEOUT_MS) })
     let changed = false
+    let found = 0
     if (res.status === 304) {
       await res.body?.cancel()
     } else if (res.ok) {
@@ -70,6 +103,7 @@ async function check(t: Target) {
       const hash = await sha256(text)
       changed = t.content_hash != null && hash !== t.content_hash   // the very first check only records a baseline
       Object.assign(patch, { content_hash: hash, etag: res.headers.get('etag'), last_modified: res.headers.get('last-modified') })
+      if (changed || t.content_hash == null) { try { found = await discover(t, body, looksLikeIcs(body, t.url)) } catch (e) { patch.last_note = `Found-listings step failed: ${String((e as Error).message).slice(0, 80)}` } }
     } else {
       throw new Error(`HTTP ${res.status}`)
     }
@@ -77,10 +111,10 @@ async function check(t: Target) {
     Object.assign(patch, {
       last_success_at: now, fail_streak: 0, unchanged_streak: streak,
       interval_days: changed ? base : nextInterval(base, streak),
-      last_note: changed ? 'Changed since the previous check' : res.status === 304 ? 'Unchanged (server said so)' : t.content_hash ? 'Unchanged' : 'First check: baseline saved',
+      last_note: patch.last_note ?? (changed ? 'Changed since the previous check' : res.status === 304 ? 'Unchanged (server said so)' : t.content_hash ? 'Unchanged' : 'First check: baseline saved'),
       ...(changed ? { last_changed_at: now } : {}),
     })
-    return { outcome: changed ? 'changed' : 'unchanged', patch }
+    return { outcome: changed ? 'changed' : 'unchanged', patch, found }
   } catch (e) {
     const fails = t.fail_streak + 1
     Object.assign(patch, {
@@ -88,7 +122,7 @@ async function check(t: Target) {
       last_note: `Failed: ${String((e as Error).message).slice(0, 120)}`,
       ...(fails >= PAUSE_AFTER_FAILURES ? { status: 'paused' } : {}),
     })
-    return { outcome: 'failed', patch }
+    return { outcome: 'failed', patch, found: 0 }
   }
 }
 
@@ -102,7 +136,7 @@ Deno.serve(async (req) => {
   const active: Target[] = await rest('crawl_targets?select=id,url,interval_days,base_interval_days,etag,last_modified,content_hash,unchanged_streak,fail_streak,last_changed_at,last_success_at&status=eq.active&order=last_success_at.asc.nullsfirst&limit=200')
   const due = active.filter((t) => !t.last_success_at || nowMs - Date.parse(t.last_success_at) >= t.interval_days * 86_400_000).slice(0, MAX_PER_RUN)
 
-  const summary = { due: due.length, changed: 0, unchanged: 0, failed: 0, skipped: 0 }
+  const summary = { due: due.length, changed: 0, unchanged: 0, failed: 0, skipped: 0, new_listings: 0 }
   let lastHost = ''
   for (const t of due) {
     const host = (() => { try { return new URL(t.url).host } catch { return '' } })()
@@ -110,6 +144,7 @@ Deno.serve(async (req) => {
     lastHost = host
     const r = await check(t)
     summary[r.outcome as 'changed' | 'unchanged' | 'failed' | 'skipped']++
+    summary.new_listings += r.found
     await rest(`crawl_targets?id=eq.${t.id}`, { method: 'PATCH', body: JSON.stringify(r.patch) })
   }
   return new Response(JSON.stringify(summary), { headers: { 'Content-Type': 'application/json' } })
