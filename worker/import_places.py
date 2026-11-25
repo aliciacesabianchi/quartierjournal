@@ -91,6 +91,8 @@ PLACES = [
   hours=None, admission=None, free=None, tips='Kindermode für Babys, Mädchen und Buben (gehobenes Segment). Öffnungszeiten: siehe ballonrouge.ch.'),
  dict(name='Petit Bateau Zürich', kind='Laden', address='Sihlstrasse 24, 8001 Zürich', url='https://stores.petit-bateau.com/fr/suisse/zurich/sihlstrasse-24',
   hours=None, admission=None, free=None, tips='Kinder- und Babykleidung. Öffnungszeiten: siehe Website des Geschäfts.'),
+ dict(name='Atelier für Musik und Bewegung', kind='Musikatelier', address='Schlossergasse 9, 8001 Zürich', url='https://www.musikundbewegung.ch/kurse-fuer-kinder',
+  hours=None, admission=None, free=None, tips='Kurse für Kinder: Babymusik, Eltern-Kind-Singen, Musik und Bewegung, Musik-Karussell, Klavierunterricht (laut Flyer; neue Kurse ab September). Daten, Zeiten und Preise nennt die Website nicht: bitte beim Atelier anfragen. Das Atelier ist als Eltern-Kind-Singen-Kursleitung für Zürich beim Verein Eltern-Kind-Singen aufgeführt.'),
  dict(name='Zoo Zürich', kind='Zoo', address='Zürichbergstrasse 221, 8044 Zürich', url='https://zoo.ch/zoobesuch/oeffnungszeiten',
   hours='März bis Oktober 9–18 Uhr (Masoala Regenwald 10–18 Uhr) · November bis Februar 9–17 Uhr (Masoala Regenwald 10–17 Uhr). Am 24. Dezember schliesst der Zoo um 16 Uhr.',
   admission='Preise für Tageseintritt und Jahreskarte: siehe zoo.ch/zoobesuch/tickets-preise (auf der Website laufend aktualisiert). IV-Beziehende und Kulturlegi-Inhabende erhalten reduzierte Preise an der Tageskasse.',

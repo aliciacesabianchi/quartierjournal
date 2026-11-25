@@ -18,6 +18,7 @@ const s = reactive({
   kreis: route.query.k ? Number(route.query.k) : null as number | null,
   onlyConfirmed: route.query.conf === '1',
   kind: (route.query.kind as string) || null as string | null,
+  free: route.query.free === '1',
 })
 const KINDS = ['Museum', 'Zoo', 'Park', 'Spielplatz', 'Ausflugsziel', 'Ludothek', 'Secondhand', 'Laden']
 const items = ref<Place[]>([])
@@ -33,6 +34,7 @@ async function fetchPage(from: number) {
   if (s.kreis) q = q.eq('district_number', s.kreis)
   if (s.onlyConfirmed) q = q.eq('verification', 'provider_verified')
   if (s.kind) q = q.eq('kind', s.kind)
+  if (s.free) q = q.not('free_when', 'is', null)
   const term = s.q.trim().replace(/[%,()]/g, ' ')
   if (term) q = q.or(`name.ilike.%${term}%,address.ilike.%${term}%,quartier.ilike.%${term}%`)
   const { data, count, error } = await q.order('info_checked_on', { ascending: false, nullsFirst: false }).order('activity_count', { ascending: false }).order('name').range(from, from + PAGE - 1)
@@ -51,6 +53,7 @@ watch(s, () => {
     if (s.kreis) query.k = String(s.kreis)
     if (s.onlyConfirmed) query.conf = '1'
     if (s.kind) query.kind = s.kind
+    if (s.free) query.free = '1'
     router.replace({ query })
     void fetchPage(0)
   }, 250)
@@ -79,6 +82,7 @@ const mapUrl = (p: Place) => `https://www.openstreetmap.org/search?query=${encod
     <div class="chips" role="group" :aria-label="$t('ui.placeKinds.label')">
       <button class="chip" :aria-pressed="s.kind === null" @click="s.kind = null">{{ $t('ui.placeKinds.all') }}</button>
       <button v-for="k in KINDS" :key="k" class="chip" :aria-pressed="s.kind === k" @click="s.kind = s.kind === k ? null : k">{{ $t(`ui.placeKinds.${k}`) }}</button>
+      <button class="chip" :aria-pressed="s.free" @click="s.free = !s.free">{{ $t('ui.placeKinds.free') }}</button>
     </div>
     <hr class="rule" />
 
