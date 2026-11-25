@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { kidFit } from '@/domain/kidfit'
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
@@ -106,6 +107,7 @@ async function share() {
         <span>{{ place || $t('ui.tile.noPlace') }}<template v-if="a.district_number">, {{ f.kreis(a.district_number) }}</template></span>
       </div>
       <div class="small">{{ f.price(a) }} · {{ f.age(a) }}</div>
+      <div v-if="kidFit(a) === 'maybe'" class="tiny muted">{{ $t('soc.maybeKid') }}</div>
       <div v-if="note" class="tiny muted note">{{ note }}</div>
       <div class="small reg">
         <span>{{ $t(`card.reg.${a.registration}`) }}</span>

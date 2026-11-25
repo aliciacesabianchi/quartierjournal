@@ -269,6 +269,22 @@ select test.expect_denied('select public.admin_stats()', 'anonymous cannot read 
 select test.expect_denied('select public.admin_sources()', 'anonymous cannot read source numbers');
 reset role;
 
+-- CRM and funding list are admin only
+set role authenticated;
+select set_config('request.jwt.claims', '{"sub":"bbbbbbbb-0000-0000-0000-00000000000b"}', false);
+select test.expect_denied($$insert into public.crm_organisations (name) values ('x')$$, 'a normal user cannot add CRM organisations');
+select test.expect((select count(*) from public.crm_contacts) = 0, 'a normal user cannot read CRM contacts');
+select test.expect((select count(*) from public.funding_opportunities) = 0, 'a normal user cannot read the funding list');
+select set_config('request.jwt.claims', '{"sub":"cccccccc-0000-0000-0000-00000000000c"}', false);
+insert into public.crm_organisations (name, host) values ('Test GZ', 'gz.test');
+insert into public.crm_contacts (organisation_id, email, source_url) select id, 'info@gz.test', 'https://gz.test/kontakt' from public.crm_organisations where host = 'gz.test';
+select test.expect((select count(*) from public.crm_contacts) = 1, 'admin can manage CRM contacts');
+select test.expect_denied($$insert into public.crm_contacts (organisation_id, email) select id, 'not-an-address' from public.crm_organisations$$, 'an invalid e-mail address is rejected');
+set role anon;
+select set_config('request.jwt.claims', '', false);
+select test.expect_denied('select count(*) from public.crm_contacts', 'anonymous cannot read CRM contacts');
+reset role;
+
 -- ───────────── account deletion ─────────────
 set role authenticated;
 select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-0000-0000-0000-00000000000a"}', false);

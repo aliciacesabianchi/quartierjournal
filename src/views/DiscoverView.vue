@@ -8,7 +8,8 @@ import { useMe } from '@/stores/me'
 import { emptyFilters, isEnded, isVerified, matches, mixCategories, sortCards, type DiscoverFilters } from '@/domain/filters'
 import { addDays, isoWeekday, todayInZurich } from '@/domain/time'
 import { fitsDates } from '@/domain/care'
-import type { Weekday } from '@/domain/types'
+import { kidFit } from '@/domain/kidfit'
+import type { ActivityCard, Weekday } from '@/domain/types'
 import { useFormat } from '@/composables/useFormat'
 import ActivityTile from '@/components/ActivityTile.vue'
 import PlaceList from '@/components/PlaceList.vue'
@@ -24,7 +25,7 @@ const AGES = [6, 12, 24, 36, 48, 60] // months; label as "under 1", "1 year", �
 const PAGE = 12
 
 // ── filters <-> URL query (shareable, survives reload) ──
-function fromQuery(): DiscoverFilters & { fit: boolean } {
+function fromQuery(): DiscoverFilters & { fit: boolean; general: boolean } {
   const q = route.query
   const num = (v: unknown) => (v == null || v === '' ? null : Number(v))
   return {
@@ -43,6 +44,7 @@ function fromQuery(): DiscoverFilters & { fit: boolean } {
     forCaregiver: (q.for === 'caregiver' || q.for === 'child' ? q.for : 'all'),
     favouritesOnly: q.fav === '1',
     fit: q.fit === '1',
+    general: q.gen === '1',
     scope: q.scope === 'v' ? 'verified' : 'all',
     when: (['today', 'tomorrow', 'weekend', 'week', 'nextweek', 'month', 'range'].includes(String(q.w)) ? q.w : 'any') as DiscoverFilters['when'],
     includeUnknownAge: q.uage === '1',
@@ -69,6 +71,7 @@ watch(s, () => {
   if (s.forCaregiver !== 'all') q.for = s.forCaregiver
   if (s.favouritesOnly) q.fav = '1'
   if (s.fit) q.fit = '1'
+  if (s.general) q.gen = '1'
   if (s.scope === 'verified') q.scope = 'v'
   if (s.when !== 'any') q.w = s.when
   if (s.includeUnknownAge) q.uage = '1'
@@ -79,7 +82,7 @@ watch(s, () => {
 onMounted(() => cat.load())
 
 const extraCount = computed(() =>
-  [s.districts.length > 0, s.timeOfDay, s.childAgeMonths != null, s.freeOnly, s.noRegistration,
+  [s.districts.length > 0, s.general, s.timeOfDay, s.childAgeMonths != null, s.freeOnly, s.noRegistration,
     s.forCaregiver !== 'all', s.favouritesOnly, s.fit, s.when !== 'any', s.weekdays.length > 0].filter(Boolean).length)
 
 const hasSchedule = computed(() => me.blocks.some((b) => me.selfIds.has(b.caregiver_id)))
@@ -94,9 +97,12 @@ const fitDates = computed(() => {
   return Array.from({ length: 7 }, (_, i) => addDays(monday, i)).filter((d) => d >= today)
 })
 const results = computed(() => {
-  const out = cat.cards.filter((a) => matches(a, s, me.favourites, today))
-  const fitted = s.fit && hasSchedule.value ? out.filter((a) => fitsDates(a, me.blocks, me.skips, me.selfIds, fitDates.value)) : out
-  const sorted = sortCards(fitted)
+  // Only what is clearly for children is shown by default; general community events (yoga, senior cafés, evening concerts)
+  // stay hidden unless asked for. Suggestions for "my week" need a clear sign of children.
+  const out = cat.cards.filter((a) => matches(a, s, me.favourites, today) && (s.general || kidFit(a) !== 'no'))
+  const fitted = s.fit && hasSchedule.value ? out.filter((a) => kidFit(a) === 'yes' && fitsDates(a, me.blocks, me.skips, me.selfIds, fitDates.value)) : out
+  const rank = (a: ActivityCard) => (kidFit(a) === 'yes' ? 0 : kidFit(a) === 'maybe' ? 1 : 2)
+  const sorted = sortCards(fitted).sort((x, y) => rank(x) - rank(y))   // stable: order inside a group is kept
   return s.categories.length === 1 || s.subcategories.length ? sorted : mixCategories(sorted)
 })
 // entries that a filter hides only because a detail is unknown: say so, and offer to show them
@@ -142,7 +148,7 @@ function applyFilters() {
   void nextTick(() => document.getElementById('results')?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' }))
 }
 function clear() {
-  Object.assign(s, { ...emptyFilters(), q: s.q, fit: false })
+  Object.assign(s, { ...emptyFilters(), q: s.q, fit: false, general: false })
 }
 const ageLabel = (m: number) => (m < 12 ? 'discover.ageMonths' : null)
 </script>
@@ -245,6 +251,7 @@ const ageLabel = (m: number) => (m < 12 ? 'discover.ageMonths' : null)
         <button class="chip" :aria-pressed="s.noRegistration" @click="s.noRegistration = !s.noRegistration">{{ $t('discover.noReg') }}</button>
         <button class="chip" :aria-pressed="s.includeUnknownKreis" @click="s.includeUnknownKreis = !s.includeUnknownKreis">{{ $t('ui.disc.unknownKreis') }}</button>
         <button class="chip" :aria-pressed="s.includeUnknownAge" @click="s.includeUnknownAge = !s.includeUnknownAge">{{ $t('ui.disc.unknownAge') }}</button>
+        <button class="chip" :aria-pressed="s.general" @click="s.general = !s.general">{{ $t('soc.generalToggle') }}</button>
         <button v-if="auth.loggedIn" class="chip" :aria-pressed="s.favouritesOnly" @click="s.favouritesOnly = !s.favouritesOnly">♥ {{ $t('discover.favs') }}</button>
         <button v-if="auth.loggedIn" class="chip" :aria-pressed="s.fit" :disabled="!hasSchedule" @click="s.fit = !s.fit">{{ $t('discover.fit') }}</button>
       </div>
