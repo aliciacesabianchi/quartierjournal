@@ -15,11 +15,8 @@ async function copyAddress() {
       <p>{{ copy.story.ctB1 }}</p>
       <p>{{ copy.story.ctB2 }}</p>
     </div>
-    <!-- No fake contact form: a message is only "sent" when the person's own email app sends it. -->
-    <div class="row">
-      <a v-if="contactEmail" class="btn primary" :href="`mailto:${contactEmail}`">{{ $t('ui.contact.write') }}</a>
-      <p v-else class="muted">{{ $t('ui.contact.soon') }}</p>
-    </div>
+    <!-- No fake contact form and no mail button (it does nothing without a mail program): the address is shown and can be copied. -->
+    <p v-if="!contactEmail" class="muted">{{ $t('ui.contact.soon') }}</p>
     <p v-if="contactEmail" class="addr">
       <span class="muted small">{{ $t('ui.contact.orWrite') }}</span><br />
       <strong class="mailaddr">{{ contactEmail }}</strong>
