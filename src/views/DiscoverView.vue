@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { MAINS, classify, subsOf, type Main } from '@/domain/taxonomy'
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useCatalogue } from '@/stores/catalogue'
 import { useAuth } from '@/stores/auth'
@@ -135,6 +135,12 @@ function toggleWeekday(d: Weekday) { s.weekdays = s.weekdays.includes(d) ? s.wee
 function toggleDistrict(n: number) {
   s.districts = s.districts.includes(n) ? s.districts.filter((x) => x !== n) : [...s.districts, n].sort((a, b) => a - b)
 }
+// "Show results": closes both panels and jumps to the list, so it is clear the search now uses the chosen filters
+function applyFilters() {
+  filtersOpen.value = false
+  catsOpen.value = false
+  void nextTick(() => document.getElementById('results')?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' }))
+}
 function clear() {
   Object.assign(s, { ...emptyFilters(), q: s.q, fit: false })
 }
@@ -182,6 +188,10 @@ const ageLabel = (m: number) => (m < 12 ? 'discover.ageMonths' : null)
           <button v-for="x in subsFor(m)" :key="x" class="chip small" :aria-pressed="s.subcategories.includes(x)" @click="toggleSub(x)">{{ $t(`tax.sub.${x}`) }} ({{ subCounts.get(x) ?? 0 }})</button>
         </div>
       </template>
+      <div class="applybar">
+        <button class="btn primary" @click="applyFilters">{{ results.length === 0 ? $t('soc.showNone') : results.length === 1 ? $t('soc.showResults1') : $t('soc.showResults', { n: results.length }) }}</button>
+        <button class="linkbtn small" @click="clear">{{ $t('discover.clear') }}</button>
+      </div>
     </section>
 
     <section v-show="filtersOpen" id="filters" class="panel stack">
@@ -241,7 +251,10 @@ const ageLabel = (m: number) => (m < 12 ? 'discover.ageMonths' : null)
       <p v-if="auth.loggedIn && !hasSchedule" class="tiny muted" style="margin: 0">
         <RouterLink :to="{ name: 'week' }">{{ $t('discover.fitNeedsSchedule') }}</RouterLink>
       </p>
-      <div><button class="linkbtn small" @click="clear">{{ $t('discover.clear') }}</button></div>
+      <div class="applybar">
+        <button class="btn primary" @click="applyFilters">{{ results.length === 0 ? $t('soc.showNone') : results.length === 1 ? $t('soc.showResults1') : $t('soc.showResults', { n: results.length }) }}</button>
+        <button class="linkbtn small" @click="clear">{{ $t('discover.clear') }}</button>
+      </div>
     </section>
 
     <hr class="rule" />
@@ -252,7 +265,7 @@ const ageLabel = (m: number) => (m < 12 ? 'discover.ageMonths' : null)
     </div>
     <p v-else-if="cat.status === 'loading' || cat.status === 'idle'" aria-live="polite">{{ $t('common.loading') }}</p>
     <template v-else>
-      <p class="small" aria-live="polite" style="margin: 0">{{ $t('discover.results', results.length) }}</p>
+      <p id="results" class="small results-line" aria-live="polite" style="margin: 0">{{ $t('discover.results', results.length) }}<template v-if="extraCount || s.categories.length"> · {{ $t('soc.applied') }}</template></p>
       <p v-if="hiddenNoKreis" class="small hint">{{ $t('ui.disc.hiddenKreis', { n: hiddenNoKreis }) }} <button class="linkbtn" @click="s.includeUnknownKreis = true">{{ $t('ui.disc.showThem') }}</button></p>
       <p v-if="hiddenNoAge > 0" class="small hint">{{ $t('ui.disc.hiddenAge', { n: hiddenNoAge }) }} <button class="linkbtn" @click="s.includeUnknownAge = true">{{ $t('ui.disc.showThem') }}</button></p>
       <div class="grid-cards">
@@ -269,6 +282,8 @@ const ageLabel = (m: number) => (m < 12 ? 'discover.ageMonths' : null)
 <style scoped>
 .count { background: var(--magenta); color: #fff; border-radius: var(--pill); min-width: 22px; padding: 1px 7px; font-size: 13px; }
 .gem { margin-left: auto; }
+.applybar { position: sticky; bottom: 0; display: flex; gap: 14px; align-items: center; flex-wrap: wrap; background: #fff; padding: 12px 0 4px; border-top: 1px solid var(--line); margin-top: 6px; z-index: 3; }
+.results-line { scroll-margin-top: 12px; }
 .filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 12px; }
 fieldset { border: 0; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
 .chip:disabled { opacity: .5; cursor: not-allowed; }

@@ -8,6 +8,9 @@ import { useCatalogue } from '@/stores/catalogue'
 import { useFormat } from '@/composables/useFormat'
 import { db } from '@/lib/supabase'
 import { ageInMonths, todayInZurich } from '@/domain/time'
+import UserAvatar from '@/components/UserAvatar.vue'
+import { AVATAR_KINDS } from '@/domain/avatars'
+import { squareJpeg } from '@/lib/image'
 import { LOCALES, LOCALE_LABELS, setLocale, type Locale } from '@/i18n'
 
 const { t } = useI18n()
@@ -31,6 +34,23 @@ async function save() {
   } catch (e) { msg.value = { kind: 'error', text: t('auth.errors.generic', { msg: (e as Error).message }) } }
 }
 
+const photoMsg = ref<{ kind: 'ok' | 'error'; text: string } | null>(null)
+const photoBusy = ref(false)
+async function pickAvatar(kind: (typeof AVATAR_KINDS)[number] | null) {
+  photoMsg.value = null
+  try { await me.chooseAvatar(kind) } catch (e) { photoMsg.value = { kind: 'error', text: t('auth.errors.generic', { msg: (e as Error).message }) } }
+}
+async function onPhoto(e: Event) {
+  const input = e.target as HTMLInputElement
+  const file = input.files?.[0]
+  input.value = ''
+  if (!file) return
+  photoMsg.value = null; photoBusy.value = true
+  try { await me.uploadPhoto(await squareJpeg(file)); photoMsg.value = { kind: 'ok', text: t('common.saved') } }
+  catch (err) { const m = (err as Error).message; photoMsg.value = { kind: 'error', text: m === 'type' || m === 'size' ? t('soc.photoErr') : t('auth.errors.generic', { msg: m }) } }
+  finally { photoBusy.value = false }
+}
+
 const thisYear = Number(todayInZurich().slice(0, 4))
 const YEARS = Array.from({ length: 8 }, (_, i) => thisYear - i)
 const child = reactive({ nickname: '', birth_year: thisYear - 1, birth_month: 1 })
@@ -52,7 +72,6 @@ const monthName = (m: number) => new Intl.DateTimeFormat(f.intl(), { month: 'lon
 // summary line under the name, e.g. "Zürich · Kreis 5 · Lea"
 const kreisNumber = computed(() => cat.districts.find((d) => d.id === me.profile?.home_district_id)?.number ?? null)
 const summary = computed(() => ['Zürich', kreisNumber.value ? f.kreis(kreisNumber.value) : '', ...me.children.map((c) => c.nickname).filter(Boolean)].filter(Boolean).join(' · '))
-const initial = computed(() => (me.profile?.display_name || auth.user?.email || '?').trim().charAt(0).toUpperCase())
 
 const favCards = computed(() => cat.cards.filter((c) => me.favourites.has(c.id)))
 const planRows = computed(() => me.plan.map((p) => {
@@ -82,12 +101,29 @@ async function deleteAccount() {
     <p v-if="!me.loaded">{{ $t('common.loading') }}</p>
     <template v-else>
       <header class="who">
-        <span class="avatar" aria-hidden="true">{{ initial }}</span>
+        <UserAvatar :size="84" />
         <div>
           <h1>{{ me.profile?.display_name || $t('profile.title') }}</h1>
           <p class="lead">{{ summary }}</p>
         </div>
       </header>
+
+      <section class="card pics" aria-labelledby="pic-h">
+        <h2 id="pic-h">{{ $t('soc.avatarTitle') }}</h2>
+        <p class="small muted" style="margin: 0">{{ $t('soc.avatarHint') }}</p>
+        <div class="avs" role="group" :aria-label="$t('soc.avatarTitle')">
+          <button type="button" class="avbtn" :aria-pressed="!me.profile?.avatar" :aria-label="$t('soc.av_none')" @click="pickAvatar(null)"><UserAvatar :size="56" :kind="null" /></button>
+          <button v-for="k in AVATAR_KINDS" :key="k" type="button" class="avbtn" :aria-pressed="me.profile?.avatar === 'fantasy:' + k" :aria-label="$t('soc.av_' + k)" @click="pickAvatar(k)"><UserAvatar :size="56" :kind="k" /></button>
+        </div>
+        <div class="row">
+          <label class="btn small" :class="{ disabled: photoBusy }">{{ photoBusy ? $t('common.loading') : $t('soc.uploadPhoto') }}
+            <input type="file" accept="image/jpeg,image/png,image/webp" class="sr-only" :disabled="photoBusy" @change="onPhoto" />
+          </label>
+          <button v-if="me.profile?.avatar === 'photo'" type="button" class="btn small" @click="me.removePhoto().catch((e: Error) => (photoMsg = { kind: 'error', text: e.message }))">{{ $t('soc.removePhoto') }}</button>
+        </div>
+        <p class="tiny muted" style="margin: 0">{{ $t('soc.photoPrivate') }}</p>
+        <p v-if="photoMsg" class="notice" :class="{ error: photoMsg.kind === 'error' }" role="status" style="margin: 0">{{ photoMsg.text }}</p>
+      </section>
 
       <div class="cards">
         <form class="card" @submit.prevent="save">
@@ -165,6 +201,11 @@ async function deleteAccount() {
 <style scoped>
 .prof { max-width: 1000px; }
 .who { display: flex; gap: 20px; align-items: center; }
+.pics { display: grid; gap: 10px; margin-bottom: 18px; }
+.avs { display: flex; flex-wrap: wrap; gap: 10px; }
+.avbtn { border: 0; background: none; padding: 3px; border-radius: 50%; cursor: pointer; }
+.avbtn[aria-pressed='true'] { outline: 3px solid var(--magenta); outline-offset: 1px; }
+.disabled { opacity: .6; pointer-events: none; }
 .avatar { flex: none; width: 84px; height: 84px; border-radius: 50%; background: #fdf1e3; border: 1px solid var(--ink); display: grid; place-items: center; font-size: 34px; font-weight: 300; }
 h1 { font-size: clamp(40px, 7vw, 72px); }
 .lead { margin-top: 4px; font-size: 18px; }

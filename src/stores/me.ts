@@ -2,9 +2,10 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { db } from '@/lib/supabase'
+import { isAvatarKind, type AvatarKind } from '@/domain/avatars'
 import type { Caregiver, CareBlock, Weekday } from '@/domain/types'
 
-export interface Profile { user_id: string; display_name: string | null; home_district_id: number | null; locale: string; email_plan_confirmations?: boolean }
+export interface Profile { user_id: string; display_name: string | null; home_district_id: number | null; locale: string; email_plan_confirmations?: boolean; avatar?: string | null; updated_at?: string }
 export interface Child { id: string; nickname: string | null; birth_year: number | null; birth_month: number | null }
 export interface PlanItem { id: string; activity_id: string; template_id: string | null; occurrence_id: string | null; note: string | null }
 export interface UserEvent { id: string; title: string; place: string | null; note: string | null; date: string; start_time: string | null; end_time: string | null; visibility: 'private' | 'public_request' }
@@ -23,6 +24,7 @@ export const useMe = defineStore('me', () => {
   const events = ref<UserEvent[]>([])
   const invited = ref<InvitedEvent[]>([])
   const loaded = ref(false)
+  const photoUrl = ref<string | null>(null)
 
   const selfIds = computed(() => new Set(caregivers.value.filter((c) => c.is_self).map((c) => c.id)))
 
@@ -71,12 +73,38 @@ export const useMe = defineStore('me', () => {
     events.value = nextEvents
     invited.value = nextInvited
     loaded.value = true
+    void refreshPhoto()
+  }
+
+  /** Own photo (private bucket): a short-lived signed link, only for the signed-in owner. */
+  async function refreshPhoto() {
+    const uid = profile.value?.user_id
+    if (!uid || profile.value?.avatar !== 'photo') { photoUrl.value = null; return }
+    const r = await db().storage.from('avatars').createSignedUrl(`${uid}/avatar.jpg`, 3600)
+    photoUrl.value = r.data?.signedUrl ? `${r.data.signedUrl}&v=${encodeURIComponent(profile.value?.updated_at ?? '')}` : null
+  }
+  const avatarKind = computed<AvatarKind | null>(() => { const a = profile.value?.avatar; return a?.startsWith('fantasy:') && isAvatarKind(a.slice(8)) ? (a.slice(8) as AvatarKind) : null })
+  async function chooseAvatar(kind: AvatarKind | null) { await updateProfile({ avatar: kind ? `fantasy:${kind}` : null }); photoUrl.value = null }
+  /** Uploads an already resized image (see lib/image.ts) and switches the profile to it. */
+  async function uploadPhoto(blob: Blob) {
+    const uid = profile.value?.user_id
+    if (!uid) return
+    const up = await db().storage.from('avatars').upload(`${uid}/avatar.jpg`, blob, { upsert: true, contentType: 'image/jpeg' })
+    if (up.error) throw new Error(up.error.message)
+    await updateProfile({ avatar: 'photo' })
+    await refreshPhoto()
+  }
+  async function removePhoto() {
+    const uid = profile.value?.user_id
+    if (!uid) return
+    await db().storage.from('avatars').remove([`${uid}/avatar.jpg`])
+    await updateProfile({ avatar: null }); photoUrl.value = null
   }
 
   function reset() {
     ++loadGeneration
     profile.value = null; children.value = []; caregivers.value = []; blocks.value = []
-    plan.value = []; favourites.value = new Set(); leads.value = []; skips.value = []; events.value = []; invited.value = []; loaded.value = false
+    plan.value = []; favourites.value = new Set(); leads.value = []; skips.value = []; events.value = []; invited.value = []; loaded.value = false; photoUrl.value = null
   }
 
   async function updateProfile(patch: Partial<Omit<Profile, 'user_id'>>) {
@@ -187,7 +215,7 @@ export const useMe = defineStore('me', () => {
   }
 
   return {
-    profile, children, caregivers, blocks, plan, favourites, leads, skips, events, invited, loaded, selfIds, skipWeek, unskip, addEvent, removeEvent, leaveInvited,
+    profile, photoUrl, avatarKind, chooseAvatar, uploadPhoto, removePhoto, children, caregivers, blocks, plan, favourites, leads, skips, events, invited, loaded, selfIds, skipWeek, unskip, addEvent, removeEvent, leaveInvited,
     load, reset, updateProfile, addChild, removeChild, addCaregiver, updateCaregiver, removeCaregiver,
     addBlock, updateBlock, removeBlock, addToPlan, removeFromPlan, inPlan, toggleFavourite, submitLead,
   }

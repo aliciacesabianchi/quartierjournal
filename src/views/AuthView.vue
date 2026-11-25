@@ -27,9 +27,17 @@ const busy = ref(false)
 const error = ref<string | null>(null)
 const info = ref<string | null>(null)
 
-const next = () => (typeof route.query.next === 'string' && route.query.next.startsWith('/') && !route.query.next.startsWith('//') && !route.query.next.includes('\\') ? route.query.next : '/woche')
+// Where to go after signing in. The page the visitor came from is kept in sessionStorage too, so it survives the round trip
+// through Google or a confirmation e-mail (those return to /login without the original address).
+const NEXT_KEY = 'qj_next'
+const safePath = (v: unknown) => (typeof v === 'string' && v.startsWith('/') && !v.startsWith('//') && !v.includes('\\') ? v : null)
+const storedNext = () => { try { return safePath(sessionStorage.getItem(NEXT_KEY)) } catch { return null } }
+const rememberNext = () => { const n = safePath(route.query.next); if (n) { try { sessionStorage.setItem(NEXT_KEY, n) } catch { /* ignore */ } } }
+const forgetNext = () => { try { sessionStorage.removeItem(NEXT_KEY) } catch { /* ignore */ } }
+const next = () => safePath(route.query.next) ?? storedNext() ?? '/woche'
+rememberNext()
 const planHint = computed(() => next().startsWith('/a/'))
-watch(() => auth.loggedIn, (v) => { if (v) router.replace(next()) }, { immediate: true })
+watch(() => auth.loggedIn, (v) => { if (v) { const to = next(); forgetNext(); router.replace(to) } }, { immediate: true })
 watch(mode, () => { error.value = null; info.value = null })
 
 // Links from Supabase emails land here. An expired/used link comes back with error_code in the URL; a link opened

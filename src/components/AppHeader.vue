@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAuth } from '@/stores/auth'
 import { useMe } from '@/stores/me'
+import UserAvatar from '@/components/UserAvatar.vue'
 import { LOCALES, LOCALE_LABELS, setLocale, type Locale } from '@/i18n'
 
 const { locale } = useI18n()
@@ -45,7 +46,7 @@ async function logout() {
         <RouterLink v-if="!auth.loggedIn" :to="{ name: 'login' }" class="btn accent small">{{ $t('nav.login') }}</RouterLink>
         <div v-else class="acct">
           <button class="btn accent small" :aria-expanded="menuOpen" aria-haspopup="menu" @click="menuOpen = !menuOpen">
-            {{ me.profile?.display_name || $t('nav.account') }} ▾
+            <UserAvatar :size="24" /> {{ me.profile?.display_name || $t('nav.account') }} ▾
           </button>
           <div v-if="menuOpen" class="scrim" @click="menuOpen = false" />
           <div v-if="menuOpen" class="menu" role="menu" @click="menuOpen = false">
@@ -65,6 +66,7 @@ async function logout() {
 
 <style scoped>
 .hd { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px 12px; padding: 18px 0 10px; border-bottom: 1px solid var(--ink); }
+.acct .btn { display: inline-flex; align-items: center; gap: 8px; }
 .brand { display: flex; flex-direction: column; text-decoration: none; line-height: 1.1; }
 .name { font-weight: 300; font-size: clamp(21px, 5.6vw, 30px); letter-spacing: -0.02em; }
 .city { color: var(--magenta-ink); font-size: 15px; }

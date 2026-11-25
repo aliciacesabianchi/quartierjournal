@@ -35,6 +35,9 @@ const en = {
   accept: 'Accept', notNow: 'Not now', linkInvalid: 'This link is not valid any more (used, expired or your own).', loginFirst: 'Please sign in or sign up first. You will come back here.',
   connected: 'You are connected.', toFriends: 'Go to friends', yourAnswer: 'Your answer', placeAfter: 'The place is shown after you answer.',
   answered: 'Thank you, your answer is saved.', toWeek: 'Go to my week', offer: 'Offer on Quartierjournal',
+  avatarTitle: 'Profile picture', avatarHint: 'Choose a drawn avatar or upload your own photo.', uploadPhoto: 'Upload a photo', removePhoto: 'Remove photo', photoPrivate: 'Your photo is private: only you can see it. Others never see it.', photoErr: 'Please choose a JPG, PNG or WebP picture up to 12 MB.',
+  av_unicorn: 'Unicorn', av_dragon: 'Dragon', av_fairy: 'Fairy', av_butterfly: 'Butterfly', av_bird: 'Bird', av_flower: 'Flower', av_fox: 'Fox', av_bunny: 'Bunny', av_none: 'Initial letter',
+  showResults: 'Show {n} results', showResults1: 'Show 1 result', showNone: 'No results: change filters', applied: 'Filters applied',
 }
 type Soc = typeof en
 const de: Soc = {
@@ -73,6 +76,9 @@ const de: Soc = {
   accept: 'Annehmen', notNow: 'Jetzt nicht', linkInvalid: 'Dieser Link ist nicht mehr gültig (benutzt, abgelaufen oder dein eigener).', loginFirst: 'Bitte melde dich zuerst an oder registriere dich. Du kommst danach hierher zurück.',
   connected: 'Ihr seid verbunden.', toFriends: 'Zu den Freunden', yourAnswer: 'Deine Antwort', placeAfter: 'Der Ort wird nach deiner Antwort angezeigt.',
   answered: 'Danke, deine Antwort ist gespeichert.', toWeek: 'Zu meiner Woche', offer: 'Angebot im Quartierjournal',
+  avatarTitle: 'Profilbild', avatarHint: 'Wähle einen gezeichneten Avatar oder lade dein eigenes Foto hoch.', uploadPhoto: 'Foto hochladen', removePhoto: 'Foto entfernen', photoPrivate: 'Dein Foto ist privat: nur du siehst es. Andere sehen es nie.', photoErr: 'Bitte wähle ein JPG-, PNG- oder WebP-Bild bis 12 MB.',
+  av_unicorn: 'Einhorn', av_dragon: 'Drache', av_fairy: 'Fee', av_butterfly: 'Schmetterling', av_bird: 'Vogel', av_flower: 'Blume', av_fox: 'Fuchs', av_bunny: 'Hase', av_none: 'Anfangsbuchstabe',
+  showResults: '{n} Ergebnisse anzeigen', showResults1: '1 Ergebnis anzeigen', showNone: 'Keine Ergebnisse: Filter ändern', applied: 'Filter angewendet',
 }
 const fr: Soc = {
   fitWeek: 'Convient à ma semaine', fitNote: 'Seulement les offres des jours à venir cette semaine où vous avez votre enfant (créneaux «Avec moi»). Les semaines de vacances marquées sont exclues.',
@@ -110,6 +116,9 @@ const fr: Soc = {
   accept: 'Accepter', notNow: 'Pas maintenant', linkInvalid: 'Ce lien n’est plus valable (utilisé, expiré ou le vôtre).', loginFirst: 'Connectez-vous ou inscrivez-vous d’abord. Vous reviendrez ici.',
   connected: 'Vous êtes connectés.', toFriends: 'Vers les amis', yourAnswer: 'Votre réponse', placeAfter: 'Le lieu s’affiche après votre réponse.',
   answered: 'Merci, votre réponse est enregistrée.', toWeek: 'Vers ma semaine', offer: 'Offre sur Quartierjournal',
+  avatarTitle: 'Photo de profil', avatarHint: 'Choisissez un avatar dessiné ou téléchargez votre propre photo.', uploadPhoto: 'Télécharger une photo', removePhoto: 'Supprimer la photo', photoPrivate: 'Votre photo est privée : vous seul la voyez. Personne d’autre ne la voit.', photoErr: 'Choisissez une image JPG, PNG ou WebP de 12 Mo maximum.',
+  av_unicorn: 'Licorne', av_dragon: 'Dragon', av_fairy: 'Fée', av_butterfly: 'Papillon', av_bird: 'Oiseau', av_flower: 'Fleur', av_fox: 'Renard', av_bunny: 'Lapin', av_none: 'Initiale',
+  showResults: 'Afficher {n} résultats', showResults1: 'Afficher 1 résultat', showNone: 'Aucun résultat : changez les filtres', applied: 'Filtres appliqués',
 }
 const it: Soc = {
   fitWeek: 'Adatto alla mia settimana', fitNote: 'Solo offerte nei giorni ancora a venire questa settimana in cui hai il tuo bambino (orari «Con me»). Le settimane di vacanza segnate sono escluse.',
@@ -147,5 +156,8 @@ const it: Soc = {
   accept: 'Accetta', notNow: 'Non ora', linkInvalid: 'Questo link non è più valido (usato, scaduto o il tuo).', loginFirst: 'Accedi o registrati prima. Tornerai qui.',
   connected: 'Siete collegati.', toFriends: 'Agli amici', yourAnswer: 'La tua risposta', placeAfter: 'Il luogo viene mostrato dopo la tua risposta.',
   answered: 'Grazie, la tua risposta è salvata.', toWeek: 'Alla mia settimana', offer: 'Offerta su Quartierjournal',
+  avatarTitle: 'Foto del profilo', avatarHint: 'Scegli un avatar disegnato o carica la tua foto.', uploadPhoto: 'Carica una foto', removePhoto: 'Rimuovi la foto', photoPrivate: 'La tua foto è privata: solo tu la vedi. Gli altri non la vedono mai.', photoErr: 'Scegli un’immagine JPG, PNG o WebP fino a 12 MB.',
+  av_unicorn: 'Unicorno', av_dragon: 'Drago', av_fairy: 'Fata', av_butterfly: 'Farfalla', av_bird: 'Uccello', av_flower: 'Fiore', av_fox: 'Volpe', av_bunny: 'Coniglio', av_none: 'Iniziale',
+  showResults: 'Mostra {n} risultati', showResults1: 'Mostra 1 risultato', showNone: 'Nessun risultato: cambia i filtri', applied: 'Filtri applicati',
 }
 export const soc = { de, en, it, fr }
