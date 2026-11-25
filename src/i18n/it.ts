@@ -123,7 +123,7 @@ const it: typeof en = {
   },
   admin: {
     title: 'Verifica', notAdmin: 'Questa pagina è riservata agli amministratori.',
-    leads: 'Segnalazioni', proposals: 'Modifiche proposte', drafts: 'Bozze', runs: 'Registro aggiornamenti', checks: 'Verifiche delle fonti',
+    leads: 'Segnalazioni', proposals: 'Modifiche proposte', drafts: 'Bozze', sources: 'Fonti', runs: 'Registro aggiornamenti', checks: 'Verifiche delle fonti',
     approve: 'Applica', reject: 'Rifiuta', publish: 'Pubblica', unpublish: 'Ritira', markAs: 'Imposta stato',
     payload: 'Modifica (JSON)', none: 'Niente da mostrare.', origin: 'Origine', submitted: 'Inviata il {date}',
     applied: 'Applicata.', rejected: 'Rifiutata.', invalidJson: 'La modifica non è un JSON valido.',

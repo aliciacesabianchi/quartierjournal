@@ -123,7 +123,7 @@ const fr: typeof en = {
   },
   admin: {
     title: 'Vérifier', notAdmin: 'Cette page est réservée aux administrateurs.',
-    leads: 'Propositions', proposals: 'Modifications proposées', drafts: 'Brouillons', runs: 'Journal des mises à jour', checks: 'Vérifications des sources',
+    leads: 'Propositions', proposals: 'Modifications proposées', drafts: 'Brouillons', sources: 'Sources', runs: 'Journal des mises à jour', checks: 'Vérifications des sources',
     approve: 'Appliquer', reject: 'Refuser', publish: 'Publier', unpublish: 'Retirer', markAs: 'Définir le statut',
     payload: 'Modification (JSON)', none: 'Rien à afficher.', origin: 'Origine', submitted: 'Envoyée le {date}',
     applied: 'Appliquée.', rejected: 'Refusée.', invalidJson: 'La modification n’est pas un JSON valide.',

@@ -121,7 +121,7 @@ export default {
   },
   admin: {
     title: 'Review', notAdmin: 'This page is for administrators only.',
-    leads: 'Leads', proposals: 'Proposed changes', drafts: 'Draft activities', runs: 'Refresh log', checks: 'Source checks',
+    leads: 'Leads', proposals: 'Proposed changes', drafts: 'Draft activities', sources: 'Sources', runs: 'Refresh log', checks: 'Source checks',
     approve: 'Apply', reject: 'Reject', publish: 'Publish', unpublish: 'Unpublish', markAs: 'Set status',
     payload: 'Change (JSON)', none: 'Nothing here.', origin: 'Origin', submitted: 'Submitted {date}',
     applied: 'Applied.', rejected: 'Rejected.', invalidJson: 'The change is not valid JSON.',

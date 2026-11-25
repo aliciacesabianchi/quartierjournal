@@ -123,7 +123,7 @@ const de: typeof en = {
   },
   admin: {
     title: 'Prüfen', notAdmin: 'Diese Seite ist nur für Administrator:innen.',
-    leads: 'Tipps', proposals: 'Vorgeschlagene Änderungen', drafts: 'Entwürfe', runs: 'Aktualisierungsprotokoll', checks: 'Quellenprüfungen',
+    leads: 'Tipps', proposals: 'Vorgeschlagene Änderungen', drafts: 'Entwürfe', sources: 'Quellen', runs: 'Aktualisierungsprotokoll', checks: 'Quellenprüfungen',
     approve: 'Übernehmen', reject: 'Ablehnen', publish: 'Veröffentlichen', unpublish: 'Zurückziehen', markAs: 'Status setzen',
     payload: 'Änderung (JSON)', none: 'Nichts vorhanden.', origin: 'Herkunft', submitted: 'Eingereicht am {date}',
     applied: 'Übernommen.', rejected: 'Abgelehnt.', invalidJson: 'Die Änderung ist kein gültiges JSON.',

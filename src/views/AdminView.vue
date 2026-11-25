@@ -13,10 +13,23 @@ const auth = useAuth()
 const cat = useCatalogue()
 const f = useFormat()
 
-type Tab = 'leads' | 'proposals' | 'drafts' | 'runs'
+type Tab = 'leads' | 'proposals' | 'drafts' | 'sources' | 'runs'
 const view = ref<'todo' | 'stats' | 'ref'>('todo')   // 'todo' = only what needs the owner; 'ref' = everything else, for reference
 const tab = ref<Tab>('leads')
 const todoDrafts = ref<any[]>([])
+// watched sources: the daily job only notes "changed since last review"; reading the page and proposing entries is done on request
+const sources = ref<any[]>([])
+const srcInfo = ref<{ active: number; paused: number; changed_unreviewed: number; failing: number; last_check: string | null } | null>(null)
+async function loadSources() {
+  const [l, n] = await Promise.all([
+    db().from('crawl_targets').select('id, url, scope, status, last_success_at, last_changed_at, reviewed_at, last_note, fail_streak, interval_days').order('last_changed_at', { ascending: false, nullsFirst: false }).limit(100),
+    db().rpc('admin_sources'),
+  ])
+  sources.value = l.data ?? []; srcInfo.value = (n.data as typeof srcInfo.value) ?? null
+}
+const isChanged = (x: any) => x.last_changed_at && (!x.reviewed_at || x.reviewed_at < x.last_changed_at)
+const markReviewed = (id: string) => act(() => db().from('crawl_targets').update({ reviewed_at: new Date().toISOString() }).eq('id', id), t('common.saved')).then(loadSources)
+const setSourceStatus = (id: string, status: string) => act(() => db().from('crawl_targets').update({ status, fail_streak: 0 }).eq('id', id), t('common.saved')).then(loadSources)
 // Needs the owner: suggestions from people (not our own research notes), proposed changes, drafts waiting to be published
 const OPEN = ['new', 'matched', 'in_review']
 const todoLeads = computed(() => leads.value.filter((l) => l.origin === 'user' && OPEN.includes(l.status)))
@@ -86,7 +99,8 @@ const byCategory = computed(() => {
 const maxCat = computed(() => Math.max(1, ...byCategory.value.map((x) => x.n)))
 const maxWeek = computed(() => Math.max(1, ...(stats.value?.users.weekly.map((w) => w.n) ?? [1])))
 const originLabel: Record<string, string> = { 'feed:chreis': 'Chreis+ (open directory, unconfirmed)', 'legacy:sqlite': 'Earlier data set', 'provider:pbz': 'Pro Juventute / PBZ programme', 'provider:site': 'Provider websites (confirmed)' }
-watch(view, (v) => { if (v === 'stats' && auth.isAdmin && !stats.value) { void loadStats(); void cat.load() } })
+watch(view, (v) => { if (v === 'stats' && auth.isAdmin && !stats.value) { void loadStats(); void cat.load(); void loadSources() } })
+watch([view, tab], () => { if (view.value === 'ref' && tab.value === 'sources' && auth.isAdmin) void loadSources() })
 onMounted(() => { if (auth.isAdmin) void load() })
 
 async function act(fn: () => PromiseLike<{ error: { message: string } | null }>, ok: string) {
@@ -143,7 +157,7 @@ async function setPublished(a: any, publish: boolean) {
       </div>
       <p v-if="view === 'todo'" class="small muted" style="margin: 0">{{ $t('soc.adminTodoNote') }}</p>
       <div v-if="view === 'ref'" class="chips" role="tablist">
-        <button v-for="tb in (['leads', 'proposals', 'drafts', 'runs'] as Tab[])" :key="tb" role="tab" class="chip small" :aria-selected="tab === tb" :aria-pressed="tab === tb" @click="tab = tb">
+        <button v-for="tb in (['leads', 'proposals', 'drafts', 'sources', 'runs'] as Tab[])" :key="tb" role="tab" class="chip small" :aria-selected="tab === tb" :aria-pressed="tab === tb" @click="tab = tb">
           {{ $t(`admin.${tb}`) }}
           <span v-if="tb === 'leads'">({{ leads.length }})</span>
           <span v-if="tb === 'proposals'">({{ proposals.length }})</span>
@@ -192,6 +206,8 @@ async function setPublished(a: any, publish: boolean) {
             <div class="tile"><strong>{{ stats.catalogue.providers_with_offers }}</strong><span>{{ $t('soc.sProviders') }}</span></div>
             <div class="tile"><strong>{{ stats.catalogue.stale_90d }}</strong><span>{{ $t('soc.sStale') }}</span></div>
             <div class="tile"><strong>{{ stats.leads.open_from_people }}</strong><span>{{ $t('soc.sOpenLeads') }}</span></div>
+            <div v-if="srcInfo" class="tile"><strong>{{ srcInfo.changed_unreviewed }}</strong><span>{{ $t('soc.sSrcChanged') }}</span></div>
+            <div v-if="srcInfo" class="tile"><strong>{{ srcInfo.failing }}</strong><span>{{ $t('soc.sSrcFailing') }}</span></div>
             <div class="tile"><strong>{{ stats.catalogue.last_refresh ? f.date(stats.catalogue.last_refresh, { day: 'numeric', month: 'numeric', year: 'numeric' }) : '—' }}</strong><span>{{ $t('soc.sLastRefresh') }}</span></div>
           </div>
           <h3 class="small" style="margin: 6px 0 0">{{ $t('soc.sByCategory') }}</h3>
@@ -264,6 +280,25 @@ async function setPublished(a: any, publish: boolean) {
                   <button v-if="a.verification !== 'provider_verified'" class="btn small" @click="promote(a)">{{ $t('ui.admin.promote') }}</button>
                 </span>
               </td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section v-if="view === 'ref' && tab === 'sources'" class="stack">
+        <p class="small muted" style="margin: 0">{{ $t('soc.srcNote') }}</p>
+        <p v-if="!sources.length" class="muted">{{ $t('admin.none') }}</p>
+        <table class="tbl">
+          <tbody>
+            <tr v-for="x in sources" :key="x.id">
+              <td><a :href="x.url" target="_blank" rel="noopener noreferrer" style="word-break: break-all">{{ x.url }}</a><div class="tiny muted">{{ x.scope }}</div></td>
+              <td><span class="badge" :class="isChanged(x) ? 'warn' : x.status === 'paused' || x.fail_streak ? 'warn' : 'ok'">{{ isChanged(x) ? $t('soc.srcChanged') : x.status === 'paused' ? $t('soc.srcPaused') : x.fail_streak ? $t('soc.srcFailing') : $t('soc.srcOk') }}</span><div class="tiny muted">{{ x.last_note }}</div></td>
+              <td class="small">{{ x.last_success_at ? f.date(x.last_success_at.slice(0, 10), { day: 'numeric', month: 'numeric', year: 'numeric' }) : '—' }}<div class="tiny muted">{{ $t('soc.srcEvery', { n: x.interval_days }) }}</div></td>
+              <td><span class="row">
+                <button v-if="isChanged(x)" class="btn small" @click="markReviewed(x.id)">{{ $t('soc.srcReviewed') }}</button>
+                <button v-if="x.status === 'paused'" class="btn small" @click="setSourceStatus(x.id, 'active')">{{ $t('soc.srcResume') }}</button>
+                <button v-else class="btn small" @click="setSourceStatus(x.id, 'paused')">{{ $t('soc.srcPause') }}</button>
+              </span></td>
             </tr>
           </tbody>
         </table>

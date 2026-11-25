@@ -187,3 +187,11 @@ Defaults are in use; tell me if you want any changed.
 - Changing or deleting a repeating time asks: this event only, this and following events, or all events. "This and following" ends the old series the day before and starts a new one; "this event only" skips that date (and adds a one-off if it was changed).
 - Shared free times use only plain weekly times that are still running.
 - Not built (said openly): dragging or resizing blocks, drag-to-select a time range, notifications.
+
+## 8. Source watcher (migration 15, function `crawl-sources`)
+
+- Runs inside the free Supabase project: a daily database schedule (`pg_cron`, 03:17 UTC) calls the function, which checks at most 8 DUE sources per run. No extra account, no paid service, no AI model.
+- Lightweight on purpose: it asks the server first (`If-None-Match` / `If-Modified-Since`), reads at most 300 KB of text, compares a fingerprint of the readable text (calendar feeds ignore per-export timestamps), respects `robots.txt`, waits 1.5 s between requests to the same site and identifies itself as `QuartierjournalBot`.
+- Quiet sources are checked less and less often (the wait doubles every 3 unchanged checks, up to 8 weeks); a change resets it. Failing sources back off and are paused after 5 failures.
+- It never touches the public catalogue. A changed source is shown in the admin page (Everything else -> Sources) and counted on the Overview. Reading the changed page and proposing entries is done in a working session; proposals then appear under "Needs you".
+- Only the schedule can start a run (shared secret in `admin_settings`, readable by the admin only).
