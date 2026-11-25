@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n'
 import { db } from '@/lib/supabase'
 import { useAuth } from '@/stores/auth'
 import { useCatalogue } from '@/stores/catalogue'
+import { MAINS, classify } from '@/domain/taxonomy'
 import { useFormat } from '@/composables/useFormat'
 
 const { t } = useI18n()
@@ -13,7 +14,7 @@ const cat = useCatalogue()
 const f = useFormat()
 
 type Tab = 'leads' | 'proposals' | 'drafts' | 'runs'
-const view = ref<'todo' | 'ref'>('todo')   // 'todo' = only what needs the owner; 'ref' = everything else, for reference
+const view = ref<'todo' | 'stats' | 'ref'>('todo')   // 'todo' = only what needs the owner; 'ref' = everything else, for reference
 const tab = ref<Tab>('leads')
 const todoDrafts = ref<any[]>([])
 // Needs the owner: suggestions from people (not our own research notes), proposed changes, drafts waiting to be published
@@ -62,6 +63,30 @@ async function loadDrafts() {
   drafts.value = data ?? []
 }
 watch([draftFilter, draftQuery], () => { if (auth.isAdmin) void loadDrafts() })
+// ── overview (totals only; see migration 14) ──
+interface Stats {
+  users: { total: number; confirmed: number; new7: number; new30: number; weekly: { week: string; n: number }[] }
+  usage: { families_with_week: number; families_with_plan: number; plan_items: number; favourites: number; own_events: number; friend_pairs: number; event_invites: number; emails_30d: number; with_photo_or_avatar: number }
+  catalogue: { activities: number; verified: number; upcoming_dates: number; places: number; providers_with_offers: number; stale_90d: number; by_origin: { origin: string; n: number }[]; last_refresh: string | null }
+  leads: { open_from_people: number; total_from_people: number }
+}
+const stats = ref<Stats | null>(null)
+const sheetUrl = ref<string | null>(null)
+async function loadStats() {
+  const [st, sh] = await Promise.all([db().rpc('admin_stats'), db().from('admin_settings').select('value').eq('key', 'overview_sheet_url').maybeSingle()])
+  if (st.error) { msg.value = { kind: 'error', text: st.error.message }; return }
+  stats.value = st.data as Stats
+  sheetUrl.value = (sh.data as { value: string } | null)?.value ?? null
+}
+const byCategory = computed(() => {
+  const m = new Map<string, number>()
+  for (const a of cat.cards) { const c = classify(a); if (c) m.set(c.main, (m.get(c.main) ?? 0) + 1) }
+  return MAINS.map((k) => ({ key: k, n: m.get(k) ?? 0 })).filter((x) => x.n > 0).sort((a, b) => b.n - a.n)
+})
+const maxCat = computed(() => Math.max(1, ...byCategory.value.map((x) => x.n)))
+const maxWeek = computed(() => Math.max(1, ...(stats.value?.users.weekly.map((w) => w.n) ?? [1])))
+const originLabel: Record<string, string> = { 'feed:chreis': 'Chreis+ (open directory, unconfirmed)', 'legacy:sqlite': 'Earlier data set', 'provider:pbz': 'Pro Juventute / PBZ programme', 'provider:site': 'Provider websites (confirmed)' }
+watch(view, (v) => { if (v === 'stats' && auth.isAdmin && !stats.value) { void loadStats(); void cat.load() } })
 onMounted(() => { if (auth.isAdmin) void load() })
 
 async function act(fn: () => PromiseLike<{ error: { message: string } | null }>, ok: string) {
@@ -113,6 +138,7 @@ async function setPublished(a: any, publish: boolean) {
     <template v-else>
       <div class="chips" role="tablist">
         <button role="tab" class="chip" :aria-selected="view === 'todo'" :aria-pressed="view === 'todo'" @click="view = 'todo'">{{ $t('soc.adminTodo') }} ({{ todoCount }})</button>
+ <button role="tab" class="chip" :aria-selected="view === 'stats'" :aria-pressed="view === 'stats'" @click="view = 'stats'">{{ $t('soc.adminOverview') }}</button>
         <button role="tab" class="chip" :aria-selected="view === 'ref'" :aria-pressed="view === 'ref'" @click="view = 'ref'">{{ $t('soc.adminEverything') }}</button>
       </div>
       <p v-if="view === 'todo'" class="small muted" style="margin: 0">{{ $t('soc.adminTodoNote') }}</p>
@@ -123,6 +149,62 @@ async function setPublished(a: any, publish: boolean) {
           <span v-if="tb === 'proposals'">({{ proposals.length }})</span>
         </button>
       </div>
+      <section v-if="view === 'stats'" class="stack" aria-live="polite">
+        <p v-if="!stats" class="muted">{{ $t('common.loading') }}</p>
+        <template v-else>
+          <div class="row">
+            <a v-if="sheetUrl" class="btn primary" :href="sheetUrl" target="_blank" rel="noopener noreferrer">📊 {{ $t('soc.adminSheet') }}</a>
+            <button class="btn" @click="loadStats">{{ $t('soc.adminRefresh') }}</button>
+          </div>
+          <p v-if="sheetUrl" class="tiny muted" style="margin: 0">{{ $t('soc.adminSheetNote') }}</p>
+
+          <h2 class="sh">{{ $t('soc.adminPeople') }}</h2>
+          <div class="tiles">
+            <div class="tile"><strong>{{ stats.users.total }}</strong><span>{{ $t('soc.sUsers') }}</span></div>
+            <div class="tile"><strong>{{ stats.users.new7 }}</strong><span>{{ $t('soc.sNew7') }}</span></div>
+            <div class="tile"><strong>{{ stats.users.new30 }}</strong><span>{{ $t('soc.sNew30') }}</span></div>
+            <div class="tile"><strong>{{ stats.users.confirmed }}</strong><span>{{ $t('soc.sConfirmed') }}</span></div>
+          </div>
+          <div class="bars" :aria-label="$t('soc.sWeekly')">
+            <span class="tiny muted">{{ $t('soc.sWeekly') }}</span>
+            <div class="wk"><div v-for="w in stats.users.weekly" :key="w.week" class="wcol" :title="`${f.date(w.week)}: ${w.n}`"><i :style="{ height: (w.n / maxWeek) * 52 + 'px' }" /><span class="tiny">{{ w.n }}</span></div></div>
+          </div>
+
+          <h2 class="sh">{{ $t('soc.adminUsage') }}</h2>
+          <div class="tiles">
+            <div class="tile"><strong>{{ stats.usage.families_with_week }}</strong><span>{{ $t('soc.sWithWeek') }}</span></div>
+            <div class="tile"><strong>{{ stats.usage.families_with_plan }}</strong><span>{{ $t('soc.sWithPlan') }}</span></div>
+            <div class="tile"><strong>{{ stats.usage.plan_items }}</strong><span>{{ $t('soc.sPlanItems') }}</span></div>
+            <div class="tile"><strong>{{ stats.usage.own_events }}</strong><span>{{ $t('soc.sOwnEvents') }}</span></div>
+            <div class="tile"><strong>{{ stats.usage.friend_pairs }}</strong><span>{{ $t('soc.sFriends') }}</span></div>
+            <div class="tile"><strong>{{ stats.usage.event_invites }}</strong><span>{{ $t('soc.sInvites') }}</span></div>
+            <div class="tile"><strong>{{ stats.usage.favourites }}</strong><span>{{ $t('soc.sFavs') }}</span></div>
+            <div class="tile"><strong>{{ stats.usage.emails_30d }}</strong><span>{{ $t('soc.sEmails') }}</span></div>
+          </div>
+          <p class="tiny muted" style="margin: 0">{{ $t('soc.adminNoTracking') }}</p>
+
+          <h2 class="sh">{{ $t('soc.adminCatalogue') }}</h2>
+          <div class="tiles">
+            <div class="tile"><strong>{{ stats.catalogue.activities }}</strong><span>{{ $t('soc.sOffers') }}</span></div>
+            <div class="tile"><strong>{{ stats.catalogue.verified }}</strong><span>{{ $t('soc.sVerified') }}</span></div>
+            <div class="tile"><strong>{{ stats.catalogue.upcoming_dates }}</strong><span>{{ $t('soc.sDates') }}</span></div>
+            <div class="tile"><strong>{{ stats.catalogue.places }}</strong><span>{{ $t('soc.sPlaces') }}</span></div>
+            <div class="tile"><strong>{{ stats.catalogue.providers_with_offers }}</strong><span>{{ $t('soc.sProviders') }}</span></div>
+            <div class="tile"><strong>{{ stats.catalogue.stale_90d }}</strong><span>{{ $t('soc.sStale') }}</span></div>
+            <div class="tile"><strong>{{ stats.leads.open_from_people }}</strong><span>{{ $t('soc.sOpenLeads') }}</span></div>
+            <div class="tile"><strong>{{ stats.catalogue.last_refresh ? f.date(stats.catalogue.last_refresh, { day: 'numeric', month: 'numeric', year: 'numeric' }) : '—' }}</strong><span>{{ $t('soc.sLastRefresh') }}</span></div>
+          </div>
+          <h3 class="small" style="margin: 6px 0 0">{{ $t('soc.sByCategory') }}</h3>
+          <ul class="hbars">
+            <li v-for="c in byCategory" :key="c.key"><span class="lab">{{ $t(`tax.main.${c.key}`) }}</span><i :style="{ width: (c.n / maxCat) * 100 + '%' }" /><b>{{ c.n }}</b></li>
+          </ul>
+          <h3 class="small" style="margin: 6px 0 0">{{ $t('soc.sBySource') }}</h3>
+          <ul class="hbars plain">
+            <li v-for="o in stats.catalogue.by_origin" :key="o.origin"><span class="lab">{{ originLabel[o.origin] ?? o.origin }}</span><b>{{ o.n }}</b></li>
+          </ul>
+        </template>
+      </section>
+
       <p v-if="view === 'todo' && !todoCount" class="notice" role="status">✓ {{ $t('soc.adminNothing') }}</p>
       <div v-if="msg" class="notice" :class="msg.kind" role="status">{{ msg.text }}</div>
 
@@ -201,7 +283,19 @@ async function setPublished(a: any, publish: boolean) {
 </template>
 
 <style scoped>
-.sh { font-size: 24px; font-weight: 400; }
+.sh { font-size: 24px; font-weight: 400; margin: 10px 0 0; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.tile { border: 1px solid var(--line); border-radius: 16px; padding: 12px 14px; display: grid; gap: 2px; background: #fff; }
+.tile strong { font-size: 30px; font-weight: 300; line-height: 1.1; }
+.tile span { font-size: 13px; color: var(--muted); }
+.wk { display: flex; gap: 8px; align-items: flex-end; height: 76px; }
+.wcol { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 2px; width: 34px; }
+.wcol i { display: block; width: 100%; background: var(--magenta); border-radius: 4px 4px 0 0; min-height: 2px; }
+.hbars { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
+.hbars li { display: grid; grid-template-columns: minmax(120px, 220px) 1fr auto; gap: 10px; align-items: center; }
+.hbars.plain li { grid-template-columns: 1fr auto; }
+.hbars i { display: block; height: 14px; background: var(--yellow); border: 1px solid var(--ink); border-radius: 8px; min-width: 2px; }
+.hbars .lab { font-size: 14px; }
 .mono { font-family: ui-monospace, monospace; font-size: 13px; }
 .tbl { width: 100%; border-collapse: collapse; }
 .tbl td { padding: 10px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }

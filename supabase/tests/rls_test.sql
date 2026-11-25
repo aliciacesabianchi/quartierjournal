@@ -247,6 +247,22 @@ select test.expect_denied($$select public.create_friend_invite()$$, 'anonymous c
 select test.expect_denied('select count(*) from public.friendships', 'anonymous cannot read friendships');
 reset role;
 
+-- admin dashboard
+set role authenticated;
+select set_config('request.jwt.claims', '{"sub":"bbbbbbbb-0000-0000-0000-00000000000b"}', false);
+select test.expect_denied('select public.admin_stats()', 'a normal user cannot read the admin statistics');
+select test.expect((select count(*) from public.admin_settings) = 0, 'a normal user cannot read admin settings');
+select test.expect_denied($$insert into public.admin_settings (key, value) values ('x', 'y')$$, 'a normal user cannot write admin settings');
+select set_config('request.jwt.claims', '{"sub":"cccccccc-0000-0000-0000-00000000000c"}', false);
+select test.expect((public.admin_stats() -> 'users' ->> 'total')::int >= 1, 'admin can read the statistics');
+select test.expect(public.admin_stats() ? 'catalogue', 'statistics contain catalogue totals');
+select test.expect(public.admin_stats()::text !~ '@example\.test', 'statistics contain no e-mail addresses');
+select test.expect((select count(*) from public.admin_settings where key = 'overview_sheet_url') = 1, 'admin can read the sheet link');
+set role anon;
+select set_config('request.jwt.claims', '', false);
+select test.expect_denied('select public.admin_stats()', 'anonymous cannot read the statistics');
+reset role;
+
 -- ───────────── account deletion ─────────────
 set role authenticated;
 select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-0000-0000-0000-00000000000a"}', false);
