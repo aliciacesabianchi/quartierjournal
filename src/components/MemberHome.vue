@@ -9,6 +9,8 @@ import { useFormat } from '@/composables/useFormat'
 import { useDayIdeas } from '@/composables/useDayIdeas'
 import { addDays, hhmm, isoWeekday, nextDateForWeekday, toMinutes, todayInZurich } from '@/domain/time'
 import ActivityTile from './ActivityTile.vue'
+import UserAvatar from './UserAvatar.vue'
+import { blocksOn } from '@/domain/care'
 
 const { t } = useI18n()
 const auth = useAuth()
@@ -40,8 +42,7 @@ const entries = computed<Entry[]>(() => {
 const todayEntries = computed(() => entries.value.filter((e) => e.date === today))
 const nextEntries = computed(() => entries.value.filter((e) => e.date > today).slice(0, 3))
 
-const careToday = computed(() => me.blocks
-  .filter((b) => b.weekday === wd)
+const careToday = computed(() => blocksOn(me.blocks, me.skips, today)
   .sort((a, b) => a.start_time.localeCompare(b.start_time))
   .map((b) => ({ id: b.id, text: `${hhmm(b.start_time)}–${hhmm(b.end_time)} ${me.caregivers.find((c) => c.id === b.caregiver_id)?.label ?? ''}`, color: me.caregivers.find((c) => c.id === b.caregiver_id)?.color ?? '#eee' })))
 
@@ -51,9 +52,15 @@ const dateLine = computed(() => f.date(today, { weekday: 'long', day: 'numeric',
 
 <template>
   <main id="main" class="wrap member">
-    <header>
-      <h1>{{ name ? t('ui.home.hello', { name }) : t('ui.home.helloNoName') }}</h1>
-      <p class="lead">{{ dateLine }}</p>
+    <header class="top">
+      <div>
+        <h1>{{ name ? t('ui.home.hello', { name }) : t('ui.home.helloNoName') }}</h1>
+        <p class="lead">{{ dateLine }}</p>
+      </div>
+      <RouterLink :to="{ name: 'profile' }" class="prof" :aria-label="$t('soc.viewProfile')">
+        <UserAvatar :size="56" />
+        <span>{{ $t('soc.viewProfile') }}</span>
+      </RouterLink>
     </header>
 
     <section class="stack" aria-labelledby="today-h">
@@ -102,6 +109,8 @@ const dateLine = computed(() => f.date(today, { weekday: 'long', day: 'numeric',
 
 <style scoped>
 .member { gap: 48px; }
+.top { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
+.prof { display: inline-flex; align-items: center; gap: 12px; text-decoration: none; border: 1px solid var(--ink); border-radius: var(--pill); padding: 6px 18px 6px 6px; }
 h1 { font-size: clamp(44px, 8vw, 88px); }
 .lead { margin-top: 8px; }
 h2 { font-size: clamp(28px, 4vw, 40px); }

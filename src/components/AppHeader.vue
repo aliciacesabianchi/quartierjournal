@@ -4,7 +4,6 @@ import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAuth } from '@/stores/auth'
 import { useMe } from '@/stores/me'
-import UserAvatar from '@/components/UserAvatar.vue'
 import { LOCALES, LOCALE_LABELS, setLocale, type Locale } from '@/i18n'
 
 const { locale } = useI18n()
@@ -46,16 +45,19 @@ async function logout() {
         <RouterLink v-if="!auth.loggedIn" :to="{ name: 'login' }" class="btn accent small">{{ $t('nav.login') }}</RouterLink>
         <div v-else class="acct">
           <button class="btn accent small" :aria-expanded="menuOpen" aria-haspopup="menu" @click="menuOpen = !menuOpen">
-            <UserAvatar :size="24" /> {{ me.profile?.display_name || $t('nav.account') }} ▾
+            {{ me.profile?.display_name || $t('nav.account') }}<span v-if="auth.isAdmin" class="adm">{{ $t('soc.adminBadge') }}</span> ▾
           </button>
           <div v-if="menuOpen" class="scrim" @click="menuOpen = false" />
           <div v-if="menuOpen" class="menu" role="menu" @click="menuOpen = false">
             <RouterLink role="menuitem" :to="{ name: 'week' }">{{ $t('nav.week') }}</RouterLink>
             <RouterLink role="menuitem" :to="{ name: 'friends' }">{{ $t('soc.navFriends') }}</RouterLink>
             <RouterLink role="menuitem" :to="{ name: 'profile' }">{{ $t('nav.profile') }}</RouterLink>
-            <RouterLink role="menuitem" :to="{ name: 'suggest' }">{{ $t('nav.suggest') }}</RouterLink>
             <RouterLink role="menuitem" :to="{ name: 'how' }">{{ $t('nav.how') }}</RouterLink>
-            <RouterLink v-if="auth.isAdmin" role="menuitem" :to="{ name: 'admin' }">{{ $t('nav.admin') }}</RouterLink>
+            <div v-if="auth.isAdmin" class="admin" role="group" :aria-label="$t('soc.adminSection')">
+              <strong class="ah">{{ $t('soc.adminSection') }} <span class="adm">{{ $t('soc.adminBadge') }}</span></strong>
+              <span class="tiny muted">{{ $t('soc.adminHint') }}</span>
+              <RouterLink role="menuitem" :to="{ name: 'admin' }">{{ $t('soc.adminReview') }}</RouterLink>
+            </div>
             <button role="menuitem" @click.stop="logout">{{ $t('nav.logout') }}</button>
           </div>
         </div>
@@ -66,6 +68,9 @@ async function logout() {
 
 <style scoped>
 .hd { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px 12px; padding: 18px 0 10px; border-bottom: 1px solid var(--ink); }
+.adm { background: var(--ink); color: #fff; border-radius: var(--pill); padding: 1px 8px; font-size: 11px; letter-spacing: .04em; text-transform: uppercase; }
+.admin { display: grid; gap: 2px; margin-top: 6px; padding: 10px 12px 4px; border-top: 1px solid var(--line); background: #faf6ee; border-radius: 12px; }
+.ah { display: flex; gap: 8px; align-items: center; font-weight: 500; }
 .acct .btn { display: inline-flex; align-items: center; gap: 8px; }
 .brand { display: flex; flex-direction: column; text-decoration: none; line-height: 1.1; }
 .name { font-weight: 300; font-size: clamp(21px, 5.6vw, 30px); letter-spacing: -0.02em; }
