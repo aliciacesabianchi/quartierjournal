@@ -38,13 +38,21 @@ function openNew(o: { date: string; from?: string; who?: string }) {
   step.value = 'form'; error.value = null; dlg.value?.showModal()
 }
 /** Existing care time, tapped on a given date. */
-function openBlock(b: CareBlock, date: string) {
+function loadBlock(b: CareBlock, date: string) {
   block.value = b; occDate.value = date
   const kind: RepeatKind = b.on_date ? 'none' : (b.interval_weeks ?? 1) > 1 ? 'biweekly' : 'weekly'
   Object.assign(form, { who: b.caregiver_id, date, from: hhmm(b.start_time) ?? '08:00', to: hhmm(b.end_time) ?? '12:00', kind, days: [], ends: !!b.valid_until, until: b.valid_until ?? '' })
-  step.value = 'form'; error.value = null; dlg.value?.showModal()
+  step.value = 'form'; error.value = null
 }
-defineExpose({ openNew, openBlock })
+function openBlock(b: CareBlock, date: string) { loadBlock(b, date); dlg.value?.showModal() }
+/** A block was dragged or resized in the grid: one-off times change at once, repeating times first ask how far the change goes. */
+function openMove(b: CareBlock, date: string, to: { date: string; from: string; to: string }) {
+  loadBlock(b, date)
+  Object.assign(form, { date: to.date, from: to.from, to: to.to })
+  if (!isSeries(b)) return finish(planEdit(b, date, 'all', fields(), repeat()))
+  pending.value = 'save'; scope.value = 'this'; step.value = 'scope'; dlg.value?.showModal()
+}
+defineExpose({ openNew, openBlock, openMove })
 
 function repeat(): Repeat { return { kind: form.kind, days: form.days, until: form.kind !== 'none' && form.ends && form.until ? form.until : null } }
 const fields = () => ({ caregiver_id: form.who, date: form.date, start_time: form.from, end_time: form.to })
@@ -121,6 +129,7 @@ function confirmScope() {
       <div class="row">
         <button class="btn primary" type="submit">{{ $t('soc.ok') }}</button>
         <button class="btn" type="button" @click="step = 'form'">{{ $t('common.back') }}</button>
+        <button class="btn" type="button" @click="dlg?.close()">{{ $t('common.cancel') }}</button>
       </div>
     </form>
   </dialog>

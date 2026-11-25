@@ -71,6 +71,69 @@ function removeCaregiver(id: string) {
 }
 const cgById = computed(() => new Map(me.caregivers.map((c) => [c.id, c])))
 
+// ───────────── drag a care time to move it, drag its bottom edge to change its length ─────────────
+// Mouse: press and drag. Touch: press and hold briefly, then drag (so scrolling the page still works).
+interface Drag { b: CareBlock; mode: 'move' | 'resize'; day: Weekday; start: number; end: number; moved: boolean }
+const drag = ref<Drag | null>(null)
+const gridEl = ref<HTMLElement | null>(null)
+let suppressClick = false
+const minutesOf = (t: string) => toMinutes(t)
+function startDrag(e: PointerEvent, b: CareBlock, d: Weekday, mode: 'move' | 'resize') {
+  if (e.button !== 0 && e.pointerType === 'mouse') return
+  const touch = e.pointerType !== 'mouse'
+  const s0 = minutesOf(b.start_time), e0 = minutesOf(b.end_time)
+  const colRects = () => [...(gridEl.value?.querySelectorAll<HTMLElement>('.col') ?? [])].map((c) => c.getBoundingClientRect())
+  const startY = e.clientY, startX = e.clientX
+  let active = !touch, timer: number | undefined
+  const rects0 = colRects()
+  const rect0 = rects0[shown.value.indexOf(d)]
+  if (!rect0) return
+  const grab = range.value.from * 60 + ((startY - rect0.top) / HOUR_PX) * 60 - s0   // where inside the block the pointer is
+  const begin = () => { active = true; drag.value = { b, mode, day: d, start: s0, end: e0, moved: false }; navigator.vibrate?.(10) }
+  if (touch) timer = window.setTimeout(begin, 350)
+  else drag.value = { b, mode, day: d, start: s0, end: e0, moved: false }
+  const move = (ev: PointerEvent) => {
+    if (!active) { if (Math.hypot(ev.clientX - startX, ev.clientY - startY) > 8) cleanup(); return }   // a scroll, not a drag
+    ev.preventDefault()
+    const dr = drag.value!
+    if (!dr.moved && Math.hypot(ev.clientX - startX, ev.clientY - startY) < 5) return
+    dr.moved = true
+    const rects = colRects()
+    let ci = rects.findIndex((r) => ev.clientX >= r.left && ev.clientX <= r.right)
+    if (ci < 0) ci = ev.clientX < (rects[0]?.left ?? 0) ? 0 : rects.length - 1
+    const r = rects[ci]!
+    const pointerMin = range.value.from * 60 + ((ev.clientY - r.top) / HOUR_PX) * 60
+    if (mode === 'move') {
+      const len = e0 - s0
+      const st = Math.max(0, Math.min(24 * 60 - len, Math.round((pointerMin - grab) / 15) * 15))
+      Object.assign(dr, { day: shown.value[ci]!, start: st, end: st + len })
+    } else {
+      dr.end = Math.max(s0 + 15, Math.min(24 * 60, Math.round(pointerMin / 15) * 15))
+    }
+  }
+  const up = () => {
+    const dr = drag.value
+    cleanup()
+    if (dr?.moved) {
+      suppressClick = true
+      // the browser sends a click after the drop (to the column if the block moved away): swallow it so nothing opens
+      const swallow = (ev: Event) => { ev.stopPropagation(); ev.preventDefault() }
+      window.addEventListener('click', swallow, { capture: true, once: true })
+      setTimeout(() => { suppressClick = false; window.removeEventListener('click', swallow, { capture: true }) }, 400)
+      const changed = dr.day !== d || dr.start !== s0 || dr.end !== e0
+      if (changed) careDlg.value?.openMove(b, dates.value[d - 1]!, { date: dates.value[dr.day - 1]!, from: hm(dr.start), to: hm(dr.end) })
+    }
+  }
+  const key = (ev: KeyboardEvent) => { if (ev.key === 'Escape') cleanup() }
+  function cleanup() {
+    if (timer) clearTimeout(timer)
+    drag.value = null
+    window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', cleanup); window.removeEventListener('keydown', key)
+  }
+  window.addEventListener('pointermove', move, { passive: false }); window.addEventListener('pointerup', up); window.addEventListener('pointercancel', cleanup); window.addEventListener('keydown', key)
+}
+const openBlockTap = (b: CareBlock, d: Weekday) => { if (!suppressClick) careDlg.value?.openBlock(b, dates.value[d - 1]!) }
+
 // ───────────── care times: calendar-style (tap to add, tap to change; see CareDialog) ─────────────
 const careDlg = ref<InstanceType<typeof CareDialog> | null>(null)
 const chooser = ref<HTMLDialogElement | null>(null)
@@ -283,7 +346,7 @@ watch(narrow, () => { page.value = 0 })
             <button class="btn small" :class="{ on: page === 0 }" @click="page = 0">{{ $t('ui.week.mobilePage') }}</button>
             <button class="btn small" :class="{ on: page === 1 }" @click="page = 1">{{ $t('ui.week.mobilePage2') }}</button>
           </div>
-          <div class="grid" :style="{ gridTemplateColumns: `42px repeat(${shown.length}, minmax(0, 1fr))` }">
+          <div ref="gridEl" class="grid" :style="{ gridTemplateColumns: `42px repeat(${shown.length}, minmax(0, 1fr))` }">
             <div />
             <div v-for="d in shown" :key="d" class="dh" :class="{ today: dates[d - 1] === today }">
               <strong>{{ f.day(d) }}</strong><span class="tiny">{{ f.date(dates[d - 1]!, { day: 'numeric', month: 'numeric' }) }}</span>
@@ -295,9 +358,14 @@ watch(narrow, () => { page.value = 0 })
             </div>
             <div v-for="d in shown" :key="'c' + d" class="col" :style="{ height: gridHeight + 'px' }" @click.self="tapColumn(d, $event)">
               <span v-for="h in hours" :key="h" class="line" :style="{ top: (h - range.from) * HOUR_PX + 'px' }" aria-hidden="true" />
-              <button v-for="b in blocksOn(d)" :key="b.id" class="blk" :style="{ top: topOf(b.start_time) + 'px', height: heightOf(b.start_time, b.end_time) + 'px', background: cgById.get(b.caregiver_id)?.color }" @click="careDlg?.openBlock(b, dates[d - 1]!)">
+              <button v-for="b in blocksOn(d)" :key="b.id" class="blk" :class="{ lifted: drag?.b.id === b.id && drag.moved }" :style="{ top: topOf(b.start_time) + 'px', height: heightOf(b.start_time, b.end_time) + 'px', background: cgById.get(b.caregiver_id)?.color }"
+                :aria-label="`${cgById.get(b.caregiver_id)?.label} ${hhmm(b.start_time)}–${hhmm(b.end_time)}`" @pointerdown="startDrag($event, b, d, 'move')" @click="openBlockTap(b, d)">
                 <strong>{{ cgById.get(b.caregiver_id)?.label }}</strong><span>{{ hhmm(b.start_time) }}–{{ hhmm(b.end_time) }}</span>
+                <span class="rz" aria-hidden="true" @pointerdown.stop.prevent="startDrag($event, b, d, 'resize')" @click.stop />
               </button>
+              <div v-if="drag?.moved && drag.day === d" class="blk ghost" :style="{ top: topOf(hm(drag.start)) + 'px', height: heightOf(hm(drag.start), hm(drag.end)) + 'px', background: cgById.get(drag.b.caregiver_id)?.color }">
+                <strong>{{ cgById.get(drag.b.caregiver_id)?.label }}</strong><span>{{ hm(drag.start) }}–{{ hm(drag.end) }}</span>
+              </div>
               <template v-for="r in rowsOn(dates[d - 1]!)" :key="r.p.id">
                 <RouterLink v-if="slotOf(r)?.start && r.a" class="act" :class="{ sel: r.tp?.recurrence === 'selected_dates' }" :to="{ name: 'activity', params: { id: r.a.id } }"
                   :style="{ top: topOf(slotOf(r)!.start!) + 'px', height: heightOf(slotOf(r)!.start!, slotOf(r)!.end) + 'px' }">
@@ -513,6 +581,11 @@ watch(narrow, () => { page.value = 0 })
 .act.sel { background: #fff; color: var(--magenta-ink); box-shadow: inset 0 0 0 2px var(--magenta); }
 .pad { padding: 10px 4px 0; margin: 0; }
 .line, .hours { pointer-events: none; }
+.blk { touch-action: none; user-select: none; -webkit-user-select: none; cursor: grab; }
+.blk.lifted { opacity: .35; }
+.blk.ghost { pointer-events: none; cursor: grabbing; box-shadow: 0 6px 18px rgba(0,0,0,.25); outline: 2px solid var(--ink); z-index: 5; }
+.rz { position: absolute; left: 0; right: 0; bottom: 0; height: 12px; cursor: ns-resize; touch-action: none; }
+.rz::after { content: ''; position: absolute; left: 50%; bottom: 3px; width: 26px; height: 3px; margin-left: -13px; border-radius: 2px; background: rgba(0,0,0,.35); }
 .col { cursor: pointer; }
 .dnum { border: 0; background: none; padding: 0 2px; font-size: 12px; cursor: pointer; text-align: left; min-width: 24px; min-height: 18px; }
 .mi.care { color: var(--ink); border: 0; cursor: pointer; text-align: left; }
