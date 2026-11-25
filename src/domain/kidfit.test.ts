@@ -20,6 +20,10 @@ describe('kidFit', () => {
     expect(kidFit(card({ title: 'Kinderkonzert', start: '18:00' }))).toBe('yes')       // a children's concert stays, even if late
     expect(kidFit(card({ title: 'Treffpunkt', verification: 'provider_verified', start: '10:00' }))).toBe('yes')
   })
+  it('evenings for parents without the child are out', () => {
+    expect(kidFit(card({ title: '„Mami’s Club“ ohne Kind', start: '18:00' }))).toBe('no')
+    expect(kidFit(card({ title: 'Ökumenischer Kunstausflug', start: '17:00' }))).toBe('no')
+  })
   it('adult programme is out; general daytime events are only "maybe"', () => {
     expect(kidFit(card({ title: 'Yoga für alle', start: '09:30' }))).toBe('no')
     expect(kidFit(card({ title: 'Cafétreff für Senior*innen', start: '14:00' }))).toBe('no')

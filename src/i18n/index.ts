@@ -6,6 +6,7 @@ import fr from './fr'
 import { ui } from './ui'
 import { taxonomy } from './taxonomy'
 import { soc } from './social'
+import { crm } from './crm'
 
 export const LOCALES = ['de', 'en', 'it', 'fr'] as const
 export type Locale = (typeof LOCALES)[number]
@@ -28,7 +29,7 @@ export const i18n = createI18n({
   legacy: false,
   locale: initialLocale(),
   fallbackLocale: 'de',
-  messages: { de: { ...de, ui: ui.de, tax: taxonomy.de, soc: soc.de }, en: { ...en, ui: ui.en, tax: taxonomy.en, soc: soc.en }, it: { ...it, ui: ui.it, tax: taxonomy.it, soc: soc.it }, fr: { ...fr, ui: ui.fr, tax: taxonomy.fr, soc: soc.fr } },
+  messages: { de: { ...de, ui: ui.de, tax: taxonomy.de, soc: soc.de, crm: crm.de }, en: { ...en, ui: ui.en, tax: taxonomy.en, soc: soc.en, crm: crm.en }, it: { ...it, ui: ui.it, tax: taxonomy.it, soc: soc.it, crm: crm.it }, fr: { ...fr, ui: ui.fr, tax: taxonomy.fr, soc: soc.fr, crm: crm.fr } },
 })
 
 export function setLocale(l: Locale) {

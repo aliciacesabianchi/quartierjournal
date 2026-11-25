@@ -6,6 +6,7 @@ import { db } from '@/lib/supabase'
 import { useAuth } from '@/stores/auth'
 import { useCatalogue } from '@/stores/catalogue'
 import { MAINS, classify } from '@/domain/taxonomy'
+import AdminCrm from '@/components/AdminCrm.vue'
 import { useFormat } from '@/composables/useFormat'
 
 const { t } = useI18n()
@@ -14,7 +15,7 @@ const cat = useCatalogue()
 const f = useFormat()
 
 type Tab = 'leads' | 'proposals' | 'drafts' | 'sources' | 'runs'
-const view = ref<'todo' | 'stats' | 'ref'>('todo')   // 'todo' = only what needs the owner; 'ref' = everything else, for reference
+const view = ref<'todo' | 'stats' | 'crm' | 'ref'>('todo')   // 'todo' = only what needs the owner; 'ref' = everything else, for reference
 const tab = ref<Tab>('leads')
 const todoDrafts = ref<any[]>([])
 // watched sources: the daily job only notes "changed since last review"; reading the page and proposing entries is done on request
@@ -158,6 +159,7 @@ async function setPublished(a: any, publish: boolean) {
       <div class="chips" role="tablist">
         <button role="tab" class="chip" :aria-selected="view === 'todo'" :aria-pressed="view === 'todo'" @click="view = 'todo'">{{ $t('soc.adminTodo') }} ({{ todoCount }})</button>
  <button role="tab" class="chip" :aria-selected="view === 'stats'" :aria-pressed="view === 'stats'" @click="view = 'stats'">{{ $t('soc.adminOverview') }}</button>
+ <button role="tab" class="chip" :aria-selected="view === 'crm'" :aria-pressed="view === 'crm'" @click="view = 'crm'">{{ $t('crm.tab') }}</button>
         <button role="tab" class="chip" :aria-selected="view === 'ref'" :aria-pressed="view === 'ref'" @click="view = 'ref'">{{ $t('soc.adminEverything') }}</button>
       </div>
       <p v-if="view === 'todo'" class="small muted" style="margin: 0">{{ $t('soc.adminTodoNote') }}</p>
@@ -168,6 +170,8 @@ async function setPublished(a: any, publish: boolean) {
           <span v-if="tb === 'proposals'">({{ proposals.length }})</span>
         </button>
       </div>
+      <AdminCrm v-if="view === 'crm'" />
+
       <section v-if="view === 'stats'" class="stack" aria-live="polite">
         <p v-if="!stats" class="muted">{{ $t('common.loading') }}</p>
         <template v-else>

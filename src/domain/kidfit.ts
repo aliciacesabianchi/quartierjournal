@@ -18,8 +18,11 @@ function starts(a: ActivityCard): number[] {
 }
 export const isLate = (a: ActivityCard) => { const s = starts(a); return s.length > 0 && s.every((m) => m >= LATE_FROM) }
 
+const WITHOUT_CHILD = /ohne\s+kind(er)?|kunstausflug|\bausflug\b.*(erwachsene|senior)|nur f(ü|ue)r (erwachsene|eltern|mütter|väter)/i
+
 export function kidFit(a: ActivityCard): KidFit {
   const text = `${a.title} ${a.activity_type ?? ''}`
+  if (WITHOUT_CHILD.test(text)) return 'no'                       // e.g. a mothers' evening "ohne Kind"
   const strongKid = KID.test(text) || (a.age_min_months != null && a.age_min_months <= 60) || (a.age_max_months != null && a.age_max_months <= 84)
   if (a.age_min_months != null && a.age_min_months > 84 && !KID.test(text)) return 'no'      // 7 years and up
   if (a.verification === 'provider_verified' && a.audience !== 'caregiver_with_childcare' && (strongKid || !ADULT.test(text))) return 'yes'
