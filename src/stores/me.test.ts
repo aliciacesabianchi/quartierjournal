@@ -2,7 +2,7 @@ import { beforeEach, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { useMe } from './me'
 const mock = vi.hoisted(() => ({ from: vi.fn() }))
-vi.mock('@/lib/supabase', () => ({ db: () => ({ from: mock.from }) }))
+vi.mock('@/lib/supabase', () => ({ db: () => ({ from: mock.from, rpc: mock.from }) }))
 function request() {
   const pending: Array<(value: unknown) => void> = []
   mock.from.mockImplementation(() => {

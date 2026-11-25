@@ -70,6 +70,7 @@ export interface CareBlock {
   weekday: Weekday
   start_time: string
   end_time: string
+  on_date?: string | null
 }
 
 export interface Caregiver {

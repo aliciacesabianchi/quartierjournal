@@ -34,6 +34,7 @@ async function logout() {
       <nav aria-label="Main" class="nv">
         <RouterLink :to="{ name: 'discover' }">{{ $t('nav.discover') }}</RouterLink>
         <RouterLink v-if="auth.loggedIn" :to="{ name: 'week' }">{{ $t('nav.week') }}</RouterLink>
+        <RouterLink v-if="auth.loggedIn" :to="{ name: 'friends' }">{{ $t('soc.navFriends') }}</RouterLink>
         <RouterLink v-else :to="{ name: 'how' }">{{ $t('nav.how') }}</RouterLink>
       </nav>
       <div class="tools">
@@ -49,6 +50,7 @@ async function logout() {
           <div v-if="menuOpen" class="scrim" @click="menuOpen = false" />
           <div v-if="menuOpen" class="menu" role="menu" @click="menuOpen = false">
             <RouterLink role="menuitem" :to="{ name: 'week' }">{{ $t('nav.week') }}</RouterLink>
+            <RouterLink role="menuitem" :to="{ name: 'friends' }">{{ $t('soc.navFriends') }}</RouterLink>
             <RouterLink role="menuitem" :to="{ name: 'profile' }">{{ $t('nav.profile') }}</RouterLink>
             <RouterLink role="menuitem" :to="{ name: 'suggest' }">{{ $t('nav.suggest') }}</RouterLink>
             <RouterLink role="menuitem" :to="{ name: 'how' }">{{ $t('nav.how') }}</RouterLink>

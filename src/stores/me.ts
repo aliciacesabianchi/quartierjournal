@@ -7,6 +7,8 @@ import type { Caregiver, CareBlock, Weekday } from '@/domain/types'
 export interface Profile { user_id: string; display_name: string | null; home_district_id: number | null; locale: string; email_plan_confirmations?: boolean }
 export interface Child { id: string; nickname: string | null; birth_year: number | null; birth_month: number | null }
 export interface PlanItem { id: string; activity_id: string; template_id: string | null; occurrence_id: string | null; note: string | null }
+export interface UserEvent { id: string; title: string; place: string | null; note: string | null; date: string; start_time: string | null; end_time: string | null; visibility: 'private' | 'public_request' }
+export interface InvitedEvent { invite_id: string; status: string; title: string; date: string | null; start_time: string | null; end_time: string | null; place: string | null; inviter_name: string | null; activity_id: string | null; template_id: string | null; occurrence_id: string | null }
 export interface Lead { id: string; url: string | null; name: string | null; note: string | null; status: string; created_at: string }
 
 export const useMe = defineStore('me', () => {
@@ -17,6 +19,9 @@ export const useMe = defineStore('me', () => {
   const plan = ref<PlanItem[]>([])
   const favourites = ref<Set<string>>(new Set())
   const leads = ref<Lead[]>([])
+  const skips = ref<{ id: string; block_id: string; date: string }[]>([])
+  const events = ref<UserEvent[]>([])
+  const invited = ref<InvitedEvent[]>([])
   const loaded = ref(false)
 
   const selfIds = computed(() => new Set(caregivers.value.filter((c) => c.is_self).map((c) => c.id)))
@@ -31,14 +36,17 @@ export const useMe = defineStore('me', () => {
   async function load() {
     const generation = ++loadGeneration
     const s = db()
-    const [p, c, cg, b, pl, f, l] = await Promise.all([
+    const [p, c, cg, b, pl, f, l, sk, ev, inv] = await Promise.all([
       s.from('profiles').select('*').maybeSingle(),
       s.from('children').select('id, nickname, birth_year, birth_month').order('created_at'),
       s.from('caregivers').select('id, label, color, sort_order, is_self').order('sort_order'),
-      s.from('care_blocks').select('id, caregiver_id, weekday, start_time, end_time').order('weekday').order('start_time'),
+      s.from('care_blocks').select('id, caregiver_id, weekday, start_time, end_time, on_date').order('weekday').order('start_time'),
       s.from('plan_items').select('id, activity_id, template_id, occurrence_id, note').order('created_at'),
       s.from('favourites').select('activity_id'),
       s.from('leads').select('id, url, name, note, status, created_at').order('created_at', { ascending: false }),
+      s.from('care_skips').select('id, block_id, date'),
+      s.from('user_events').select('id, title, place, note, date, start_time, end_time, visibility').order('date'),
+      s.rpc('my_invited_events'),
     ])
     // A response started before logout/account switching must never repopulate private state.
     if (generation !== loadGeneration) return
@@ -49,6 +57,9 @@ export const useMe = defineStore('me', () => {
     const nextPlan = check(pl)
     const nextFavourites = new Set<string>(check(f).map((x: { activity_id: string }) => x.activity_id))
     const nextLeads = check(l)
+    const nextSkips = check(sk)
+    const nextEvents = check(ev)
+    const nextInvited = check(inv) as InvitedEvent[]
     profile.value = nextProfile
     children.value = nextChildren
     caregivers.value = nextCaregivers
@@ -56,13 +67,16 @@ export const useMe = defineStore('me', () => {
     plan.value = nextPlan
     favourites.value = nextFavourites
     leads.value = nextLeads
+    skips.value = nextSkips
+    events.value = nextEvents
+    invited.value = nextInvited
     loaded.value = true
   }
 
   function reset() {
     ++loadGeneration
     profile.value = null; children.value = []; caregivers.value = []; blocks.value = []
-    plan.value = []; favourites.value = new Set(); leads.value = []; loaded.value = false
+    plan.value = []; favourites.value = new Set(); leads.value = []; skips.value = []; events.value = []; invited.value = []; loaded.value = false
   }
 
   async function updateProfile(patch: Partial<Omit<Profile, 'user_id'>>) {
@@ -95,16 +109,39 @@ export const useMe = defineStore('me', () => {
     caregivers.value = caregivers.value.filter((c) => c.id !== id)
   }
 
-  async function addBlock(b: { caregiver_id: string; weekday: Weekday; start_time: string; end_time: string }) {
-    blocks.value.push(check(await db().from('care_blocks').insert(b).select('id, caregiver_id, weekday, start_time, end_time').single()))
+  async function addBlock(b: { caregiver_id: string; weekday: Weekday; start_time: string; end_time: string; on_date?: string | null }) {
+    blocks.value.push(check(await db().from('care_blocks').insert(b).select('id, caregiver_id, weekday, start_time, end_time, on_date').single()))
   }
-  async function updateBlock(id: string, patch: { caregiver_id?: string; weekday?: Weekday; start_time?: string; end_time?: string }) {
-    const row = check(await db().from('care_blocks').update(patch).eq('id', id).select('id, caregiver_id, weekday, start_time, end_time').single())
+  async function updateBlock(id: string, patch: { caregiver_id?: string; weekday?: Weekday; start_time?: string; end_time?: string; on_date?: string | null }) {
+    const row = check(await db().from('care_blocks').update(patch).eq('id', id).select('id, caregiver_id, weekday, start_time, end_time, on_date').single())
     blocks.value = blocks.value.map((b) => (b.id === id ? row : b))
   }
   async function removeBlock(id: string) {
     check(await db().from('care_blocks').delete().eq('id', id))
     blocks.value = blocks.value.filter((b) => b.id !== id)
+  }
+
+  /** "Not this week" (holidays): hides one weekly time on one date only. */
+  async function skipWeek(blockId: string, date: string) {
+    skips.value.push(check(await db().from('care_skips').insert({ block_id: blockId, date }).select('id, block_id, date').single()))
+  }
+  async function unskip(id: string) {
+    check(await db().from('care_skips').delete().eq('id', id))
+    skips.value = skips.value.filter((x) => x.id !== id)
+  }
+
+  async function addEvent(e: Omit<UserEvent, 'id'>) {
+    const row = check(await db().from('user_events').insert(e).select('id, title, place, note, date, start_time, end_time, visibility').single()) as UserEvent
+    events.value = [...events.value, row].sort((a, b) => a.date.localeCompare(b.date))
+    return row
+  }
+  async function removeEvent(id: string) {
+    check(await db().from('user_events').delete().eq('id', id))
+    events.value = events.value.filter((e) => e.id !== id)
+  }
+  async function leaveInvited(inviteId: string) {
+    check(await db().from('event_guests').delete().eq('invite_id', inviteId))
+    invited.value = invited.value.filter((i) => i.invite_id !== inviteId)
   }
 
   /** Adds to the plan, then asks the email function to send a confirmation to the user's own address (never blocks or fails the add).
@@ -150,7 +187,7 @@ export const useMe = defineStore('me', () => {
   }
 
   return {
-    profile, children, caregivers, blocks, plan, favourites, leads, loaded, selfIds,
+    profile, children, caregivers, blocks, plan, favourites, leads, skips, events, invited, loaded, selfIds, skipWeek, unskip, addEvent, removeEvent, leaveInvited,
     load, reset, updateProfile, addChild, removeChild, addCaregiver, updateCaregiver, removeCaregiver,
     addBlock, updateBlock, removeBlock, addToPlan, removeFromPlan, inPlan, toggleFavourite, submitLead,
   }

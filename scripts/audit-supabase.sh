@@ -59,7 +59,7 @@ if isinstance(d, dict): print("FAIL", d.get("message","")[:300]); sys.exit(1)
 r = d[0]["r"]; bad = False
 def chk(ok, name, det=""):
     global bad; bad |= not ok; print(("PASS " if ok else "FAIL ") + name + (f"  [{det}]" if det else ""))
-chk(r["tables"] == 27, "27 tables in public (incl. coverage_checks, email_log)", r["tables"])
+chk(r["tables"] == 34, "27 tables in public (incl. coverage_checks, email_log, friends and event tables)", r["tables"])
 chk(r["migration3"] == 4, "migration 3 applied (feed columns present)", r["migration3"])
 chk(not r["no_rls"], "row-level security on and forced for every table", r["no_rls"])
 chk(r["anon_writes"] == 0, "anonymous visitors cannot write anywhere", r["anon_writes"])

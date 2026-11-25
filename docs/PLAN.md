@@ -91,8 +91,7 @@ Points to note:
 
 | Feature | Why / prerequisite |
 |---|---|
-| Friend connections, invitations, RSVP | Needs consent, a revocable sharing model and notification delivery |
-| Sharing availability with friends | Needs an explicit per-friend, revocable `availability_shares` table, opt-in only |
+| Notification delivery for invitations (push/email sent by us) | Invitations are shared by the user through WhatsApp, their own mail app or a copied link; we send nothing |
 | Email or push reminders | Needs a reliable provider and opt-in settings |
 | Photo avatars and photo uploads | Storage, moderation and privacy review |
 | Public shared-plan page | Depends on the sharing model |
@@ -172,3 +171,11 @@ Defaults are in use; tell me if you want any changed.
 | D4 | Unverified imported activities | **Draft, hidden until an admin publishes them** (15 of 25). Alternative: show them with a "not yet verified" badge |
 | D5 | Catalogue language | **Organiser's language only**, no machine translation |
 | D6 | Prototype images | **Not used.** The prototype's SVG illustrations are placeholders until images are cleared |
+
+## 6. Friends, invitations and shared free times (migration 11, built after the pilot started)
+
+- Friends connect with a **one-time link** (14 days). Opening it does nothing: the other person signs in and presses Accept. Either side can remove the friend at any time, which also ends sharing.
+- **Free times are shared per friend, one direction, opt-in** (`availability_shares`). A friend only ever sees the overlap of both people's weekly "With me" times, never who else looks after the child, never one-off or skipped times.
+- **Event invitations** (own event or catalogue offer) are links that need sign-in. The place of a private event is shown only after the guest answers. The host sees names and answers and can remove guests. Links expire after 30 days; a host can have at most 100 open links and 30 guests per link.
+- Private events live in `user_events` (owner-only). A "public" event is a **suggestion**: it creates a lead for admin review and never appears publicly by itself.
+- Other people's data is read only through `security definer` functions that check `auth.uid()`; anonymous access is revoked. Tokens are stored as SHA-256 hashes. See `supabase/tests/rls_test.sql` for the proofs.

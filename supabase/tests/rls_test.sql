@@ -144,6 +144,101 @@ insert into public.proposals (id, target_table, action, payload) values
 select test.expect(public.apply_proposal('66666666-0000-0000-0000-000000000002') is not null, 'apply_proposal inserts');
 reset role;
 
+-- ───────────── week extras, friends, invitations ─────────────
+reset role;
+update public.profiles set display_name = 'Anna' where user_id = 'aaaaaaaa-0000-0000-0000-00000000000a';
+update public.profiles set display_name = 'Ben'  where user_id = 'bbbbbbbb-0000-0000-0000-00000000000b';
+insert into public.caregivers (id, user_id, label, is_self) values
+  ('a1111111-0000-0000-0000-000000000001', 'aaaaaaaa-0000-0000-0000-00000000000a', 'With me', true),
+  ('b1111111-0000-0000-0000-000000000001', 'bbbbbbbb-0000-0000-0000-00000000000b', 'With me', true);
+insert into public.care_blocks (user_id, caregiver_id, weekday, start_time, end_time) values
+  ('aaaaaaaa-0000-0000-0000-00000000000a', 'a1111111-0000-0000-0000-000000000001', 2, '08:00', '12:00'),
+  ('bbbbbbbb-0000-0000-0000-00000000000b', 'b1111111-0000-0000-0000-000000000001', 2, '10:00', '15:00');
+
+set role authenticated;
+select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-0000-0000-0000-00000000000a"}', false);
+-- one-off time must match its weekday; skip a single week
+select test.expect_denied($$insert into public.care_blocks (caregiver_id, weekday, start_time, end_time, on_date)
+  values ('a1111111-0000-0000-0000-000000000001', 3, '08:00', '09:00', '2026-12-01')$$, 'one-off care time must fall on its weekday');
+insert into public.care_blocks (caregiver_id, weekday, start_time, end_time, on_date)
+  values ('a1111111-0000-0000-0000-000000000001', 2, '13:00', '14:00', '2026-12-01');
+insert into public.care_skips (block_id, date) select id, '2026-12-08' from public.care_blocks where on_date is null limit 1;
+select test.expect((select count(*) from public.care_skips) = 1, 'A can skip one week of a recurring time');
+-- own events: private, public suggestion creates a lead for review, visibility cannot change later
+insert into public.user_events (title, date, start_time, end_time, place) values ('Playdate', '2026-12-02', '15:00', '16:30', 'Home');
+insert into public.user_events (title, date, visibility) values ('Open garden afternoon', '2026-12-03', 'public_request');
+select test.expect((select count(*) from public.leads where name = 'Open garden afternoon' and submitted_by = auth.uid()) = 1, 'public event suggestion creates a review lead');
+select test.expect((select lead_id is not null from public.user_events where title = 'Open garden afternoon'), 'public event is linked to its lead');
+update public.user_events set visibility = 'public_request' where title = 'Playdate';
+select test.expect((select visibility from public.user_events where title = 'Playdate') = 'private', 'visibility cannot be changed after creation');
+select test.expect_denied($$insert into public.user_events (title, date, start_time, end_time) values ('Bad', '2026-12-02', '10:00', '09:00')$$, 'event end before start is rejected');
+
+-- B sees none of it
+select set_config('request.jwt.claims', '{"sub":"bbbbbbbb-0000-0000-0000-00000000000b"}', false);
+select test.expect((select count(*) from public.user_events) = 0, 'B cannot read A''s events');
+select test.expect((select count(*) from public.care_skips) = 0, 'B cannot read A''s skipped weeks');
+select test.expect_denied($$insert into public.care_skips (user_id, block_id, date) select 'aaaaaaaa-0000-0000-0000-00000000000a', id, '2026-12-15' from public.care_blocks$$, 'B cannot write into A''s skipped weeks');
+
+-- friend invitation: single use; link alone gives nothing; own link refused
+select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-0000-0000-0000-00000000000a"}', false);
+create temp table tok as select public.create_friend_invite() as t;
+grant select on tok to authenticated;
+select test.expect((select count(*) from public.friend_invites where inviter_id = auth.uid()) = 1, 'A created a friend invitation');
+select test.expect(not exists (select 1 from public.friend_invites where token_hash = (select t from tok)), 'the plain token is never stored');
+select test.expect_denied($$select public.accept_friend_invite((select t from tok))$$, 'cannot accept your own friend invitation');
+select test.expect_denied($$insert into public.friendships (user_id, friend_id) values (auth.uid(), 'bbbbbbbb-0000-0000-0000-00000000000b')$$, 'friendships cannot be written directly');
+select set_config('request.jwt.claims', '{"sub":"bbbbbbbb-0000-0000-0000-00000000000b"}', false);
+select test.expect((select inviter_name from public.peek_friend_invite((select t from tok))) = 'Anna', 'B sees only the inviter''s name before accepting');
+select test.expect((select count(*) from public.my_friends()) = 0, 'no friends before accepting');
+select test.expect((select count(*) from public.friend_overlap('aaaaaaaa-0000-0000-0000-00000000000a')) = 0, 'no overlap data without friendship');
+select public.accept_friend_invite((select t from tok));
+select test.expect((select count(*) from public.my_friends()) = 1, 'B and A are friends after accepting');
+select test.expect_denied($$select public.accept_friend_invite((select t from tok))$$, 'a friend invitation works only once');
+select test.expect((select count(*) from public.friend_overlap('aaaaaaaa-0000-0000-0000-00000000000a')) = 0, 'friends see no free times until the owner shares them');
+select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-0000-0000-0000-00000000000a"}', false);
+select test.expect((select count(*) from public.my_friends()) = 1, 'A also sees B as a friend');
+insert into public.availability_shares (viewer_id) values ('bbbbbbbb-0000-0000-0000-00000000000b');
+select set_config('request.jwt.claims', '{"sub":"bbbbbbbb-0000-0000-0000-00000000000b"}', false);
+select test.expect((select count(*) from public.friend_overlap('aaaaaaaa-0000-0000-0000-00000000000a')) = 1, 'after A shares, B sees one overlapping window');
+select test.expect((select start_time::text || '-' || end_time::text from public.friend_overlap('aaaaaaaa-0000-0000-0000-00000000000a')) = '10:00:00-12:00:00', 'overlap is the intersection 10:00-12:00 only');
+select test.expect((select count(*) from public.friend_overlap('cccccccc-0000-0000-0000-00000000000c')) = 0, 'no overlap with a non-friend');
+select test.expect_denied($$insert into public.availability_shares (owner_id, viewer_id) values ('aaaaaaaa-0000-0000-0000-00000000000a', 'bbbbbbbb-0000-0000-0000-00000000000b')$$, 'cannot switch on sharing on someone else''s behalf');
+select test.expect_denied($$insert into public.availability_shares (viewer_id) values ('cccccccc-0000-0000-0000-00000000000c')$$, 'cannot share with a non-friend');
+select test.expect((select count(*) from public.availability_shares) = 1, 'B sees only the share that involves B');
+-- unfriending removes both directions and the sharing
+select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-0000-0000-0000-00000000000a"}', false);
+delete from public.friendships where friend_id = 'bbbbbbbb-0000-0000-0000-00000000000b';
+select test.expect((select count(*) from public.my_friends()) = 0, 'unfriending removes the friend');
+select set_config('request.jwt.claims', '{"sub":"bbbbbbbb-0000-0000-0000-00000000000b"}', false);
+select test.expect((select count(*) from public.my_friends()) = 0, 'unfriending works for both sides');
+select test.expect((select count(*) from public.availability_shares) = 0, 'unfriending ends sharing');
+
+-- event invitation: place of a private event is hidden until the guest answers; strangers cannot read events directly
+select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-0000-0000-0000-00000000000a"}', false);
+create temp table etok as select public.create_event_invite(p_user_event := (select id from public.user_events where title = 'Playdate')) as t;
+grant select on etok to authenticated;
+select set_config('request.jwt.claims', '{"sub":"bbbbbbbb-0000-0000-0000-00000000000b"}', false);
+select test.expect((select title from public.get_event_invite((select t from etok))) = 'Playdate', 'guest sees the title');
+select test.expect((select place is null from public.get_event_invite((select t from etok))), 'place hidden before answering');
+select public.respond_event_invite((select t from etok), 'going');
+select test.expect((select place from public.get_event_invite((select t from etok))) = 'Home', 'place shown after answering');
+select test.expect((select count(*) from public.my_invited_events()) = 1, 'accepted event shows in B''s week');
+select test.expect((select count(*) from public.user_events) = 0, 'B still cannot read the event table directly');
+select test.expect_denied($$select public.respond_event_invite((select t from etok), 'bogus')$$, 'bad status refused');
+select test.expect_denied($$select public.create_event_invite(p_user_event := (select id from public.user_events limit 1))$$, 'cannot invite to an event you do not own');
+select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-0000-0000-0000-00000000000a"}', false);
+select test.expect((select count(*) from public.my_event_guests((select id from public.event_invites limit 1))) = 1, 'host sees the guest list');
+select test.expect_denied($$select public.respond_event_invite((select t from etok), 'going')$$, 'host cannot answer own invitation');
+select set_config('request.jwt.claims', '{"sub":"cccccccc-0000-0000-0000-00000000000c"}', false);
+select test.expect((select count(*) from public.event_invites) = 0, 'admin cannot read other people''s invitations');
+select test.expect((select count(*) from public.friendships) = 0, 'admin cannot read friendships');
+set role anon;
+select set_config('request.jwt.claims', '', false);
+select test.expect_denied($$select public.get_event_invite('x')$$, 'anonymous cannot read invitations');
+select test.expect_denied($$select public.create_friend_invite()$$, 'anonymous cannot create invitations');
+select test.expect_denied('select count(*) from public.friendships', 'anonymous cannot read friendships');
+reset role;
+
 -- ───────────── account deletion ─────────────
 set role authenticated;
 select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-0000-0000-0000-00000000000a"}', false);
@@ -152,6 +247,6 @@ reset role;
 select test.expect(not exists (select 1 from auth.users where id = 'aaaaaaaa-0000-0000-0000-00000000000a'), 'delete_my_account removes the user');
 select test.expect((select count(*) from public.children where user_id = 'aaaaaaaa-0000-0000-0000-00000000000a') = 0, 'children deleted with account');
 select test.expect((select count(*) from public.care_blocks where user_id = 'aaaaaaaa-0000-0000-0000-00000000000a') = 0, 'care blocks deleted with account');
-select test.expect((select count(*) from public.leads where submitted_by is null) = 1, 'lead kept but detached from deleted user');
+select test.expect((select count(*) from public.leads where submitted_by is null) >= 1, 'lead kept but detached from deleted user');
 
 \echo 'ALL RLS TESTS PASSED'

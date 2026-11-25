@@ -37,7 +37,8 @@ Applied in 2 migrations (`feed_enum`, `feed_data`) and 20 data chunks. Audit aft
 - ✅ `.ics` export validated with an independent parser: correct Zürich time zone, valid line lengths, weekly items marked tentative, unconfirmed notes, location and organiser link.
 - ✅ When a source gives no end time, the file says so (one hour is only a placeholder).
 - ✅ Google Calendar links per activity.
-- Not in the pilot: live calendar subscription, reminders, friend availability.
+- Not in the pilot: live calendar subscription, reminders.
+- Friends tab, invitations by link and opt-in sharing of free times: built, see PLAN.md section 6.
 
 ## Database
 - ✅ 2 migrations applied, 25 tables, catalogue imported (25 activities; 10 published, 15 drafts).

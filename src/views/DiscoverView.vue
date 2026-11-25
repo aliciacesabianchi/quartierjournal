@@ -5,8 +5,9 @@ import { useRoute, useRouter } from 'vue-router'
 import { useCatalogue } from '@/stores/catalogue'
 import { useAuth } from '@/stores/auth'
 import { useMe } from '@/stores/me'
-import { emptyFilters, fitsFreeTime, isEnded, isVerified, matches, mixCategories, sortCards, type DiscoverFilters } from '@/domain/filters'
-import { todayInZurich } from '@/domain/time'
+import { emptyFilters, isEnded, isVerified, matches, mixCategories, sortCards, type DiscoverFilters } from '@/domain/filters'
+import { addDays, isoWeekday, todayInZurich } from '@/domain/time'
+import { fitsDates } from '@/domain/care'
 import type { Weekday } from '@/domain/types'
 import { useFormat } from '@/composables/useFormat'
 import ActivityTile from '@/components/ActivityTile.vue'
@@ -87,9 +88,14 @@ const today = todayInZurich()
 const live = computed(() => cat.cards.filter((a) => !isEnded(a, today)))
 const verifiedCount = computed(() => live.value.filter(isVerified).length)
 
+// "Fits my week": the days of this week (or next week, if that is chosen under "when") that are still ahead
+const fitDates = computed(() => {
+  const monday = addDays(today, 1 - isoWeekday(today) + (s.when === 'nextweek' ? 7 : 0))
+  return Array.from({ length: 7 }, (_, i) => addDays(monday, i)).filter((d) => d >= today)
+})
 const results = computed(() => {
   const out = cat.cards.filter((a) => matches(a, s, me.favourites, today))
-  const fitted = s.fit && hasSchedule.value ? out.filter((a) => fitsFreeTime(a, me.blocks, me.selfIds)) : out
+  const fitted = s.fit && hasSchedule.value ? out.filter((a) => fitsDates(a, me.blocks, me.skips, me.selfIds, fitDates.value)) : out
   const sorted = sortCards(fitted)
   return s.categories.length === 1 || s.subcategories.length ? sorted : mixCategories(sorted)
 })
@@ -159,7 +165,11 @@ const ageLabel = (m: number) => (m < 12 ? 'discover.ageMonths' : null)
     <div class="chips scope" role="group" :aria-label="$t('ui.disc.scopeAll')">
       <button class="chip" :aria-pressed="s.scope === 'all'" @click="s.scope = 'all'">{{ $t('ui.disc.scopeAll') }} ({{ live.length }})</button>
       <button class="chip" :aria-pressed="s.scope === 'verified'" @click="s.scope = 'verified'">{{ $t('ui.disc.scopeVerified') }} ({{ verifiedCount }})</button>
+      <button v-if="auth.loggedIn && hasSchedule" class="chip fitchip" :aria-pressed="s.fit" @click="s.fit = !s.fit">📅 {{ $t('soc.fitWeek') }}</button>
+      <RouterLink class="btn small gem" :to="{ name: 'suggest' }">💎 {{ $t('soc.suggestGem') }}</RouterLink>
     </div>
+    <p v-if="s.fit && hasSchedule" class="small muted" style="margin: -4px 0 0">{{ $t(s.when === 'nextweek' ? 'soc.fitNoteNext' : 'soc.fitNote') }}</p>
+    <p v-else-if="auth.loggedIn && !hasSchedule" class="small" style="margin: -4px 0 0"><RouterLink :to="{ name: 'week' }">{{ $t('soc.fitSetup') }}</RouterLink></p>
 
     <section v-show="catsOpen" id="cats" class="panel stack">
       <div class="chips" role="group" :aria-label="$t('discover.category')">
@@ -258,6 +268,7 @@ const ageLabel = (m: number) => (m < 12 ? 'discover.ageMonths' : null)
 
 <style scoped>
 .count { background: var(--magenta); color: #fff; border-radius: var(--pill); min-width: 22px; padding: 1px 7px; font-size: 13px; }
+.gem { margin-left: auto; }
 .filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 12px; }
 fieldset { border: 0; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
 .chip:disabled { opacity: .5; cursor: not-allowed; }
