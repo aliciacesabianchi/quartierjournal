@@ -2,6 +2,7 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { db } from '@/lib/supabase'
+import type { NewBlock, Op } from '@/domain/series'
 import { isAvatarKind, type AvatarKind } from '@/domain/avatars'
 import type { Caregiver, CareBlock, Weekday } from '@/domain/types'
 
@@ -42,7 +43,7 @@ export const useMe = defineStore('me', () => {
       s.from('profiles').select('*').maybeSingle(),
       s.from('children').select('id, nickname, birth_year, birth_month').order('created_at'),
       s.from('caregivers').select('id, label, color, sort_order, is_self').order('sort_order'),
-      s.from('care_blocks').select('id, caregiver_id, weekday, start_time, end_time, on_date').order('weekday').order('start_time'),
+      s.from('care_blocks').select('id, caregiver_id, weekday, start_time, end_time, on_date, valid_from, valid_until, interval_weeks').order('weekday').order('start_time'),
       s.from('plan_items').select('id, activity_id, template_id, occurrence_id, note').order('created_at'),
       s.from('favourites').select('activity_id'),
       s.from('leads').select('id, url, name, note, status, created_at').order('created_at', { ascending: false }),
@@ -137,11 +138,11 @@ export const useMe = defineStore('me', () => {
     caregivers.value = caregivers.value.filter((c) => c.id !== id)
   }
 
-  async function addBlock(b: { caregiver_id: string; weekday: Weekday; start_time: string; end_time: string; on_date?: string | null }) {
-    blocks.value.push(check(await db().from('care_blocks').insert(b).select('id, caregiver_id, weekday, start_time, end_time, on_date').single()))
+  async function addBlock(b: Partial<NewBlock> & { caregiver_id: string; weekday: Weekday; start_time: string; end_time: string }) {
+    blocks.value.push(check(await db().from('care_blocks').insert(b).select('id, caregiver_id, weekday, start_time, end_time, on_date, valid_from, valid_until, interval_weeks').single()))
   }
-  async function updateBlock(id: string, patch: { caregiver_id?: string; weekday?: Weekday; start_time?: string; end_time?: string; on_date?: string | null }) {
-    const row = check(await db().from('care_blocks').update(patch).eq('id', id).select('id, caregiver_id, weekday, start_time, end_time, on_date').single())
+  async function updateBlock(id: string, patch: Partial<NewBlock>) {
+    const row = check(await db().from('care_blocks').update(patch).eq('id', id).select('id, caregiver_id, weekday, start_time, end_time, on_date, valid_from, valid_until, interval_weeks').single())
     blocks.value = blocks.value.map((b) => (b.id === id ? row : b))
   }
   async function removeBlock(id: string) {
@@ -149,6 +150,23 @@ export const useMe = defineStore('me', () => {
     blocks.value = blocks.value.filter((b) => b.id !== id)
   }
 
+  /** Runs the steps of a calendar-style change (see domain/series.ts). Stops at the first error and reloads care times so the screen matches the database. */
+  async function applyOps(ops: Op[]) {
+    try {
+      for (const o of ops) {
+        if (o.op === 'insert') await addBlock(o.row)
+        else if (o.op === 'update') await updateBlock(o.id, o.patch)
+        else if (o.op === 'skip') await skipWeek(o.block_id, o.date)
+        else await removeBlock(o.id)
+      }
+    } catch (e) {
+      const s = db()
+      const [b, k] = await Promise.all([s.from('care_blocks').select('id, caregiver_id, weekday, start_time, end_time, on_date, valid_from, valid_until, interval_weeks').order('weekday').order('start_time'), s.from('care_skips').select('id, block_id, date')])
+      if (b.data) blocks.value = b.data
+      if (k.data) skips.value = k.data
+      throw e
+    }
+  }
   /** "Not this week" (holidays): hides one weekly time on one date only. */
   async function skipWeek(blockId: string, date: string) {
     skips.value.push(check(await db().from('care_skips').insert({ block_id: blockId, date }).select('id, block_id, date').single()))
@@ -215,7 +233,7 @@ export const useMe = defineStore('me', () => {
   }
 
   return {
-    profile, photoUrl, avatarKind, chooseAvatar, uploadPhoto, removePhoto, children, caregivers, blocks, plan, favourites, leads, skips, events, invited, loaded, selfIds, skipWeek, unskip, addEvent, removeEvent, leaveInvited,
+    profile, photoUrl, avatarKind, chooseAvatar, uploadPhoto, removePhoto, children, caregivers, blocks, plan, favourites, leads, skips, events, invited, loaded, selfIds, skipWeek, unskip, applyOps, addEvent, removeEvent, leaveInvited,
     load, reset, updateProfile, addChild, removeChild, addCaregiver, updateCaregiver, removeCaregiver,
     addBlock, updateBlock, removeBlock, addToPlan, removeFromPlan, inPlan, toggleFavourite, submitLead,
   }

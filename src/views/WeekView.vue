@@ -5,6 +5,8 @@ import { useMe } from '@/stores/me'
 import { useCatalogue } from '@/stores/catalogue'
 import { useFormat } from '@/composables/useFormat'
 import { blocksOn as careOn } from '@/domain/care'
+import type { Op } from '@/domain/series'
+import CareDialog from '@/components/CareDialog.vue'
 import { useSocial, type Guest } from '@/stores/social'
 import ShareButtons from '@/components/ShareButtons.vue'
 import { useRouter } from 'vue-router'
@@ -69,38 +71,28 @@ function removeCaregiver(id: string) {
 }
 const cgById = computed(() => new Map(me.caregivers.map((c) => [c.id, c])))
 
-// ───────────── care blocks (add / edit in a dialog) ─────────────
-const dlg = ref<HTMLDialogElement | null>(null)
-const form = reactive({ id: '', who: '', day: 1 as Weekday, from: '08:00', to: '12:00', repeat: 'weekly' as 'weekly' | 'once', date: '' })
-const formError = ref<string | null>(null)
-function defaultWho() { return (me.caregivers.find((c) => c.is_self) ?? me.caregivers[0])?.id ?? '' }
-function openAdd(day: Weekday = 1) {
-  Object.assign(form, { id: '', who: defaultWho(), day, from: '08:00', to: '12:00', repeat: 'weekly', date: dates.value[day - 1] }); formError.value = null; dlg.value?.showModal()
+// ───────────── care times: calendar-style (tap to add, tap to change; see CareDialog) ─────────────
+const careDlg = ref<InstanceType<typeof CareDialog> | null>(null)
+const chooser = ref<HTMLDialogElement | null>(null)
+const pick = reactive({ date: '', from: '' as string | undefined })
+const defaultDate = () => (dates.value.includes(today) ? today : dates.value[0]!)
+const applyOps = (ops: Op[]) => run(() => me.applyOps(ops))
+const snap = (min: number) => Math.max(0, Math.min(23 * 60 + 45, Math.floor(min / 15) * 15))
+const hm = (min: number) => `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`
+/** A tap on an empty spot of the grid: ask what to add there, at the tapped day and time. */
+function tapColumn(d: Weekday, e: MouseEvent) {
+  pick.date = dates.value[d - 1]!
+  pick.from = hm(snap(range.value.from * 60 + (e.offsetY / HOUR_PX) * 60))
+  chooser.value?.showModal()
 }
-function openEdit(b: CareBlock) {
-  Object.assign(form, { id: b.id, who: b.caregiver_id, day: b.weekday, from: hhmm(b.start_time), to: hhmm(b.end_time), repeat: b.on_date ? 'once' : 'weekly', date: b.on_date ?? dates.value[b.weekday - 1] }); formError.value = null; dlg.value?.showModal()
+function tapDay(date: string) { pick.date = date; pick.from = undefined; chooser.value?.showModal() }
+function choose(kind: 'care' | 'event') {
+  chooser.value?.close()
+  if (kind === 'care') careDlg.value?.openNew({ date: pick.date, from: pick.from })
+  else openEvent({ date: pick.date, from: pick.from })
 }
-async function saveBlock() {
-  formError.value = null
-  if (!form.from || !form.to || toMinutes(form.to) <= toMinutes(form.from)) { formError.value = t('week.invalidTime'); return }
-  const once = form.repeat === 'once'
-  const row = { caregiver_id: form.who, weekday: (once ? isoWeekday(form.date) : form.day) as Weekday, start_time: form.from, end_time: form.to, on_date: once ? form.date : null }
-  try {
-    if (form.id) await me.updateBlock(form.id, row); else await me.addBlock(row)
-    dlg.value?.close()
-  } catch (e) { formError.value = t('auth.errors.generic', { msg: (e as Error).message }) }
-}
-const formBlock = computed(() => me.blocks.find((b) => b.id === form.id))
-const formSkipDate = computed(() => dates.value[(formBlock.value?.weekday ?? 1) - 1]!)
-const formSkipped = computed(() => me.skips.find((k) => k.block_id === form.id && k.date === formSkipDate.value))
-async function skipThisWeek() {
-  if (!form.id) return
-  try { await me.skipWeek(form.id, formSkipDate.value); dlg.value?.close() } catch (e) { formError.value = t('auth.errors.generic', { msg: (e as Error).message }) }
-}
-async function deleteBlock() {
-  if (!form.id) return
-  try { await me.removeBlock(form.id); dlg.value?.close() } catch (e) { formError.value = t('auth.errors.generic', { msg: (e as Error).message }) }
-}
+const goToday = () => { weekStart.value = addDays(today, 1 - isoWeekday(today)); monthStart.value = today.slice(0, 7) + '-01' }
+function openWeekOf(date: string) { weekStart.value = addDays(date, 1 - isoWeekday(date)); tab.value = 'week' }
 
 // ───────────── plan entries placed on the grid ─────────────
 interface Row { p: (typeof me.plan)[number]; a?: ReturnType<typeof cat.byId>; tp?: TemplateSlot; oc?: Occurrence; weekday: Weekday | null }
@@ -143,6 +135,7 @@ const gridHeight = computed(() => (range.value.to - range.value.from) * HOUR_PX)
 const topOf = (start: string) => ((toMinutes(start) - range.value.from * 60) / 60) * HOUR_PX
 const heightOf = (start: string, end: string | null) => Math.max(26, (((end ? toMinutes(end) : toMinutes(start) + 60) - toMinutes(start)) / 60) * HOUR_PX)
 const blocksOn = (d: Weekday) => careOn(me.blocks, me.skips, dates.value[d - 1]!)
+const careForDate = (date: string) => careOn(me.blocks, me.skips, date)
 const skippedThisWeek = computed(() => me.skips.filter((k) => dates.value.includes(k.date)).map((k) => {
   const b = me.blocks.find((x) => x.id === k.block_id)
   return { id: k.id, text: t('soc.skippedOn', { who: (b && cgById.value.get(b.caregiver_id)?.label) || '—', date: f.date(k.date) }) }
@@ -179,8 +172,8 @@ const evDlg = ref<HTMLDialogElement | null>(null)
 const ev = reactive({ title: '', date: today, from: '', to: '', place: '', note: '', visibility: 'private' as 'private' | 'public_request' })
 const evError = ref<string | null>(null)
 const evInfo = ref<string | null>(null)
-function openEvent() {
-  Object.assign(ev, { title: '', date: dates.value.includes(today) ? today : dates.value[0]!, from: '', to: '', place: '', note: '', visibility: 'private' }); evError.value = null; evDlg.value?.showModal()
+function openEvent(pre?: { date?: string; from?: string }) {
+  Object.assign(ev, { title: '', date: pre?.date ?? defaultDate(), from: pre?.from ?? '', to: '', place: '', note: '', visibility: 'private' }); evError.value = null; evDlg.value?.showModal()
 }
 async function saveEvent() {
   evError.value = null
@@ -253,7 +246,7 @@ watch(narrow, () => { page.value = 0 })
         </div>
         <h3>{{ $t('soc.guideStep2') }}</h3>
         <p class="small muted" style="margin: 0">{{ $t('soc.guideStep2Hint') }}</p>
-        <div><button class="btn primary" @click="openAdd()">{{ $t('soc.guideAddTime') }}</button></div>
+        <div><button class="btn primary" @click="careDlg?.openNew({ date: defaultDate() })">{{ $t('soc.guideAddTime') }}</button></div>
         <p class="tiny muted" style="margin: 0">{{ $t('soc.guideHolidays') }}</p>
       </section>
 
@@ -264,8 +257,8 @@ watch(narrow, () => { page.value = 0 })
         </div>
 
         <div class="row">
-          <button class="btn accent addtime" @click="openAdd()">{{ $t('ui.week.addTime') }}</button>
-          <button class="btn" @click="openEvent">{{ $t('soc.createEvent') }}</button>
+          <button class="btn accent addtime" @click="careDlg?.openNew({ date: defaultDate() })">{{ $t('ui.week.addTime') }}</button>
+          <button class="btn" @click="openEvent()">{{ $t('soc.createEvent') }}</button>
         </div>
         <div v-if="evInfo" class="notice" role="status">{{ evInfo }}</div>
 
@@ -283,7 +276,7 @@ watch(narrow, () => { page.value = 0 })
         <section v-if="tab === 'week'" class="cal" aria-label="week">
           <div class="nav">
             <button class="round" :aria-label="$t('ui.week.prev')" @click="shiftWeek(-1)">‹</button>
-            <strong>{{ rangeLabel }}</strong>
+            <strong>{{ rangeLabel }} <button class="btn small" @click="goToday">{{ $t('soc.today') }}</button></strong>
             <button class="round" :aria-label="$t('ui.week.next')" @click="shiftWeek(1)">›</button>
           </div>
           <div v-if="narrow" class="pager">
@@ -300,9 +293,9 @@ watch(narrow, () => { page.value = 0 })
             <div class="hours" :style="{ height: gridHeight + 'px' }" aria-hidden="true">
               <span v-for="h in hours" :key="h" :style="{ top: (h - range.from) * HOUR_PX + 'px' }">{{ String(h).padStart(2, '0') }}:00</span>
             </div>
-            <div v-for="d in shown" :key="'c' + d" class="col" :style="{ height: gridHeight + 'px' }" @dblclick.self="openAdd(d)">
+            <div v-for="d in shown" :key="'c' + d" class="col" :style="{ height: gridHeight + 'px' }" @click.self="tapColumn(d, $event)">
               <span v-for="h in hours" :key="h" class="line" :style="{ top: (h - range.from) * HOUR_PX + 'px' }" aria-hidden="true" />
-              <button v-for="b in blocksOn(d)" :key="b.id" class="blk" :style="{ top: topOf(b.start_time) + 'px', height: heightOf(b.start_time, b.end_time) + 'px', background: cgById.get(b.caregiver_id)?.color }" @click="openEdit(b)">
+              <button v-for="b in blocksOn(d)" :key="b.id" class="blk" :style="{ top: topOf(b.start_time) + 'px', height: heightOf(b.start_time, b.end_time) + 'px', background: cgById.get(b.caregiver_id)?.color }" @click="careDlg?.openBlock(b, dates[d - 1]!)">
                 <strong>{{ cgById.get(b.caregiver_id)?.label }}</strong><span>{{ hhmm(b.start_time) }}–{{ hhmm(b.end_time) }}</span>
               </button>
               <template v-for="r in rowsOn(dates[d - 1]!)" :key="r.p.id">
@@ -329,13 +322,14 @@ watch(narrow, () => { page.value = 0 })
         <section v-else class="cal" aria-label="month">
           <div class="nav">
             <button class="round" :aria-label="$t('ui.week.prev')" @click="shiftMonth(-1)">‹</button>
-            <strong>{{ monthLabel }}</strong>
+            <strong>{{ monthLabel }} <button class="btn small" @click="goToday">{{ $t('soc.today') }}</button></strong>
             <button class="round" :aria-label="$t('ui.week.next')" @click="shiftMonth(1)">›</button>
           </div>
           <div class="month">
             <div v-for="d in DAYS" :key="'h' + d" class="mh">{{ f.day(d) }}</div>
-            <div v-for="c in monthCells" :key="c.date" class="mc" :class="{ off: !c.inMonth, today: c.date === today }">
-              <span class="tiny">{{ Number(c.date.slice(8)) }}</span>
+            <div v-for="c in monthCells" :key="c.date" class="mc" :class="{ off: !c.inMonth, today: c.date === today }" @click.self="tapDay(c.date)">
+              <button class="dnum" :aria-label="`${$t('soc.openWeek')}: ${f.date(c.date)}`" @click="openWeekOf(c.date)">{{ Number(c.date.slice(8)) }}</button>
+              <button v-for="b in careForDate(c.date).slice(0, 2)" :key="b.id" class="mi care" :style="{ background: cgById.get(b.caregiver_id)?.color }" @click="careDlg?.openBlock(b, c.date)">{{ hhmm(b.start_time) }} {{ cgById.get(b.caregiver_id)?.label }}</button>
               <RouterLink v-for="r in c.items.slice(0, 3)" :key="r.p.id" class="mi" :to="{ name: 'activity', params: { id: r.a?.id ?? '' } }">{{ r.a?.title }}</RouterLink>
               <span v-for="e in c.evs.slice(0, 2)" :key="e.key" class="mi own">{{ e.title }}</span>
               <span v-if="c.items.length > 3" class="tiny muted">+{{ c.items.length - 3 }}</span>
@@ -414,34 +408,18 @@ watch(narrow, () => { page.value = 0 })
 
     </template>
 
-    <!-- care time dialog -->
-    <dialog ref="dlg" class="dlg" aria-labelledby="dlg-h">
-      <form class="stack" @submit.prevent="saveBlock">
-        <h2 id="dlg-h" class="h">{{ form.id ? $t('ui.week.editTime') : $t('ui.week.addTime').replace('+ ', '') }}</h2>
-        <label class="field"><span>{{ $t('week.who') }}</span>
-          <select v-model="form.who" name="who" class="input"><option v-for="c in me.caregivers" :key="c.id" :value="c.id">{{ c.label }}</option></select>
-        </label>
-        <fieldset class="rec">
-          <legend>{{ $t('soc.recTitle') }}</legend>
-          <label><input v-model="form.repeat" type="radio" value="weekly" name="repeat" /> {{ $t('soc.recWeekly') }}</label>
-          <label><input v-model="form.repeat" type="radio" value="once" name="repeat" /> {{ $t('soc.recOnce', { date: form.date ? f.date(form.date) : '' }) }}</label>
-        </fieldset>
-        <label v-if="form.repeat === 'weekly'" class="field"><span>{{ $t('week.day') }}</span>
-          <select v-model.number="form.day" name="day" class="input"><option v-for="d in DAYS" :key="d" :value="d">{{ f.day(d, 'long') }}</option></select>
-        </label>
-        <label v-else class="field"><span>{{ $t('soc.evDate') }}</span><input v-model="form.date" name="date" type="date" class="input" required /></label>
-        <div class="two">
-          <label class="field"><span>{{ $t('week.from') }}</span><input v-model="form.from" name="from" type="time" step="900" class="input" required /></label>
-          <label class="field"><span>{{ $t('week.to') }}</span><input v-model="form.to" name="to" type="time" step="900" class="input" required /></label>
-        </div>
-        <div v-if="formError" class="notice error" role="alert">{{ formError }}</div>
+    <CareDialog ref="careDlg" :caregivers="me.caregivers" @apply="applyOps" />
+
+    <!-- what to add where you tapped -->
+    <dialog ref="chooser" class="dlg" aria-labelledby="ch-h">
+      <div class="stack">
+        <h2 id="ch-h" class="h">{{ $t('soc.chooseTitle', { date: pick.date ? f.date(pick.date) : '' }) }}<template v-if="pick.from"> · {{ pick.from }}</template></h2>
         <div class="row">
-          <button class="btn primary" type="submit">{{ $t('ui.week.saveBlock') }}</button>
-          <button class="btn" type="button" @click="dlg?.close()">{{ $t('common.cancel') }}</button>
-          <button v-if="form.id && formBlock && !formBlock.on_date && !formSkipped" class="btn" type="button" @click="skipThisWeek">{{ $t('soc.skipWeek') }}</button>
-          <button v-if="form.id" class="btn" type="button" style="border-color: var(--danger); color: var(--danger)" @click="deleteBlock">{{ $t('ui.week.deleteBlock') }}</button>
+          <button class="btn primary" @click="choose('care')">{{ $t('soc.chooseCare') }}</button>
+          <button class="btn" @click="choose('event')">{{ $t('soc.chooseEvent') }}</button>
+          <button class="btn" @click="chooser?.close()">{{ $t('common.cancel') }}</button>
         </div>
-      </form>
+      </div>
     </dialog>
 
     <!-- create event dialog -->
@@ -534,6 +512,11 @@ watch(narrow, () => { page.value = 0 })
 .act { position: absolute; left: 22%; right: 3px; background: var(--magenta); color: #fff; border-radius: 10px; padding: 4px 7px; font-size: 12px; line-height: 1.2; text-decoration: none; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 0 0 2px #fff; z-index: 2; }
 .act.sel { background: #fff; color: var(--magenta-ink); box-shadow: inset 0 0 0 2px var(--magenta); }
 .pad { padding: 10px 4px 0; margin: 0; }
+.line, .hours { pointer-events: none; }
+.col { cursor: pointer; }
+.dnum { border: 0; background: none; padding: 0 2px; font-size: 12px; cursor: pointer; text-align: left; min-width: 24px; min-height: 18px; }
+.mi.care { color: var(--ink); border: 0; cursor: pointer; text-align: left; }
+.mc { cursor: pointer; }
 .evt { background: var(--ink); color: #fff; }
 .evt.theirs { background: #fff; color: var(--ink); box-shadow: inset 0 0 0 2px var(--ink); }
 .untimed.own, .mi.own { background: var(--ink); }

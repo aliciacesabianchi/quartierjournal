@@ -179,3 +179,11 @@ Defaults are in use; tell me if you want any changed.
 - **Event invitations** (own event or catalogue offer) are links that need sign-in. The place of a private event is shown only after the guest answers. The host sees names and answers and can remove guests. Links expire after 30 days; a host can have at most 100 open links and 30 guests per link.
 - Private events live in `user_events` (owner-only). A "public" event is a **suggestion**: it creates a lead for admin review and never appears publicly by itself.
 - Other people's data is read only through `security definer` functions that check `auth.uid()`; anonymous access is revoked. Tokens are stored as SHA-256 hashes. See `supabase/tests/rls_test.sql` for the proofs.
+
+## 7. Calendar-style care times (migration 13)
+
+- Tap an empty spot in the week grid (or a day in the month) to add a care time or an event there, with the tapped time prefilled.
+- Repeat options like a calendar app: does not repeat, every week, every other week, every weekday, chosen days, optional end date.
+- Changing or deleting a repeating time asks: this event only, this and following events, or all events. "This and following" ends the old series the day before and starts a new one; "this event only" skips that date (and adds a one-off if it was changed).
+- Shared free times use only plain weekly times that are still running.
+- Not built (said openly): dragging or resizing blocks, drag-to-select a time range, notifications.

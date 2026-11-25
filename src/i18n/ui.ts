@@ -18,7 +18,7 @@ const en = {
   week: {
     archive: 'Past events ({n})',
     note: 'Weekdays follow the organisers’ programmes; individual dates are not yet confirmed. A plan is not a booking.',
-    tabWeek: 'My week', tabMonth: 'My month', addTime: '+ Care time', addPerson: '+ Person', hint: 'Tap a block to edit it.',
+    tabWeek: 'My week', tabMonth: 'My month', addTime: '+ Care time', addPerson: '+ Person', hint: 'Tap an empty spot to add something there. Tap a block to change or delete it.',
     prev: 'Previous', next: 'Next', editTime: 'Edit care time', saveBlock: 'Save', deleteBlock: 'Delete', newPerson: 'New person or daycare',
     mobilePage: 'Mon–Thu', mobilePage2: 'Fri–Sun', emptyGrid: 'Add your first care time with “+ Care time”.', open: 'Open',
     monthNone: 'Nothing planned this month.', weeklyShort: 'every week', thisWeek: 'This week',
@@ -61,7 +61,7 @@ const de: typeof en = {
   week: {
     archive: 'Vergangene Termine ({n})',
     note: 'Wochentage nach Anbieter-Programm; einzelne Daten sind noch nicht bestätigt. Ein Plan ist keine Buchung.',
-    tabWeek: 'Meine Woche', tabMonth: 'Mein Monat', addTime: '+ Betreuungszeit', addPerson: '+ Betreuer:in', hint: 'Tippe auf einen Block, um ihn zu bearbeiten.',
+    tabWeek: 'Meine Woche', tabMonth: 'Mein Monat', addTime: '+ Betreuungszeit', addPerson: '+ Betreuer:in', hint: 'Tippe auf eine freie Stelle, um dort etwas hinzuzufügen. Tippe auf einen Block, um ihn zu ändern oder zu löschen.',
     prev: 'Zurück', next: 'Weiter', editTime: 'Betreuungszeit bearbeiten', saveBlock: 'Speichern', deleteBlock: 'Löschen', newPerson: 'Neue Person oder Kita',
     mobilePage: 'Mo–Do', mobilePage2: 'Fr–So', emptyGrid: 'Trag deine erste Betreuungszeit mit «+ Betreuungszeit» ein.', open: 'Öffnen',
     monthNone: 'In diesem Monat ist nichts geplant.', weeklyShort: 'jede Woche', thisWeek: 'Diese Woche',
@@ -104,7 +104,7 @@ const it: typeof en = {
   week: {
     archive: 'Appuntamenti passati ({n})',
     note: 'I giorni seguono i programmi degli organizzatori; le singole date non sono ancora confermate. Un piano non è una prenotazione.',
-    tabWeek: 'La mia settimana', tabMonth: 'Il mio mese', addTime: '+ Orario', addPerson: '+ Persona', hint: 'Tocca un blocco per modificarlo.',
+    tabWeek: 'La mia settimana', tabMonth: 'Il mio mese', addTime: '+ Orario', addPerson: '+ Persona', hint: 'Tocca un punto libero per aggiungere qualcosa. Tocca un blocco per modificarlo o eliminarlo.',
     prev: 'Indietro', next: 'Avanti', editTime: 'Modifica orario', saveBlock: 'Salva', deleteBlock: 'Elimina', newPerson: 'Nuova persona o asilo',
     mobilePage: 'Lun–Gio', mobilePage2: 'Ven–Dom', emptyGrid: 'Aggiungi il tuo primo orario con «+ Orario».', open: 'Apri',
     monthNone: 'Questo mese non c’è nulla in programma.', weeklyShort: 'ogni settimana', thisWeek: 'Questa settimana',
@@ -147,7 +147,7 @@ const fr: typeof en = {
   week: {
     archive: 'Dates passées ({n})',
     note: 'Les jours suivent les programmes des organisateurs ; les dates ne sont pas encore confirmées. Un plan n’est pas une réservation.',
-    tabWeek: 'Ma semaine', tabMonth: 'Mon mois', addTime: '+ Horaire', addPerson: '+ Personne', hint: 'Touchez un bloc pour le modifier.',
+    tabWeek: 'Ma semaine', tabMonth: 'Mon mois', addTime: '+ Horaire', addPerson: '+ Personne', hint: 'Touchez un endroit libre pour y ajouter quelque chose. Touchez un bloc pour le modifier ou le supprimer.',
     prev: 'Précédent', next: 'Suivant', editTime: 'Modifier l’horaire', saveBlock: 'Enregistrer', deleteBlock: 'Supprimer', newPerson: 'Nouvelle personne ou crèche',
     mobilePage: 'Lun–Jeu', mobilePage2: 'Ven–Dim', emptyGrid: 'Ajoutez votre premier horaire avec « + Horaire ».', open: 'Ouvrir',
     monthNone: 'Rien de prévu ce mois-ci.', weeklyShort: 'chaque semaine', thisWeek: 'Cette semaine',

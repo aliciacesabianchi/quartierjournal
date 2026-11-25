@@ -179,6 +179,14 @@ select test.expect((select count(*) from public.user_events) = 0, 'B cannot read
 select test.expect((select count(*) from public.care_skips) = 0, 'B cannot read A''s skipped weeks');
 select test.expect_denied($$insert into public.care_skips (user_id, block_id, date) select 'aaaaaaaa-0000-0000-0000-00000000000a', id, '2026-12-15' from public.care_blocks$$, 'B cannot write into A''s skipped weeks');
 
+-- repeating series rules
+select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-0000-0000-0000-00000000000a"}', false);
+select test.expect_denied($$insert into public.care_blocks (caregiver_id, weekday, start_time, end_time, interval_weeks) values ('a1111111-0000-0000-0000-000000000001', 4, '08:00', '09:00', 2)$$, 'every-other-week series needs a start date');
+select test.expect_denied($$insert into public.care_blocks (caregiver_id, weekday, start_time, end_time, valid_from, valid_until) values ('a1111111-0000-0000-0000-000000000001', 4, '08:00', '09:00', '2026-12-10', '2026-12-01')$$, 'series cannot end before it starts');
+select test.expect_denied($$insert into public.care_blocks (caregiver_id, weekday, start_time, end_time, interval_weeks) values ('a1111111-0000-0000-0000-000000000001', 4, '08:00', '09:00', 3)$$, 'only weekly or every other week');
+insert into public.care_blocks (caregiver_id, weekday, start_time, end_time, valid_from, interval_weeks) values ('a1111111-0000-0000-0000-000000000001', 5, '08:00', '18:00', '2026-12-04', 2);
+select set_config('request.jwt.claims', '{"sub":"bbbbbbbb-0000-0000-0000-00000000000b"}', false);
+insert into public.care_blocks (caregiver_id, weekday, start_time, end_time) values ('b1111111-0000-0000-0000-000000000001', 5, '08:00', '18:00');
 -- friend invitation: single use; link alone gives nothing; own link refused
 select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-0000-0000-0000-00000000000a"}', false);
 create temp table tok as select public.create_friend_invite() as t;
@@ -200,7 +208,7 @@ select test.expect((select count(*) from public.my_friends()) = 1, 'A also sees 
 insert into public.availability_shares (viewer_id) values ('bbbbbbbb-0000-0000-0000-00000000000b');
 select set_config('request.jwt.claims', '{"sub":"bbbbbbbb-0000-0000-0000-00000000000b"}', false);
 select test.expect((select count(*) from public.friend_overlap('aaaaaaaa-0000-0000-0000-00000000000a')) = 1, 'after A shares, B sees one overlapping window');
-select test.expect((select start_time::text || '-' || end_time::text from public.friend_overlap('aaaaaaaa-0000-0000-0000-00000000000a')) = '10:00:00-12:00:00', 'overlap is the intersection 10:00-12:00 only');
+select test.expect((select start_time::text || '-' || end_time::text from public.friend_overlap('aaaaaaaa-0000-0000-0000-00000000000a')) = '10:00:00-12:00:00', 'overlap is the intersection 10:00-12:00 only (every-other-week times are left out)');
 select test.expect((select count(*) from public.friend_overlap('cccccccc-0000-0000-0000-00000000000c')) = 0, 'no overlap with a non-friend');
 select test.expect_denied($$insert into public.availability_shares (owner_id, viewer_id) values ('aaaaaaaa-0000-0000-0000-00000000000a', 'bbbbbbbb-0000-0000-0000-00000000000b')$$, 'cannot switch on sharing on someone else''s behalf');
 select test.expect_denied($$insert into public.availability_shares (viewer_id) values ('cccccccc-0000-0000-0000-00000000000c')$$, 'cannot share with a non-friend');

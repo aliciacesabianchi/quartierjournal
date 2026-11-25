@@ -71,6 +71,9 @@ export interface CareBlock {
   start_time: string
   end_time: string
   on_date?: string | null
+  valid_from?: string | null
+  valid_until?: string | null
+  interval_weeks?: number
 }
 
 export interface Caregiver {
