@@ -8,6 +8,7 @@ import { contactEmail } from '@/lib/supabase'
     <p>{{ $t('privacy.p2') }}</p>
     <p>{{ $t('privacy.p3') }}</p>
     <p>{{ $t('privacy.p4') }}</p>
+    <p>{{ $t('privacy.p5') }}</p>
     <p v-if="contactEmail">{{ $t('privacy.contact', { email: contactEmail }) }}</p>
   </main>
 </template>

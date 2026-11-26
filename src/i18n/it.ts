@@ -134,6 +134,7 @@ const it: typeof en = {
     p2: 'I tuoi dati privati sono visibili solo a te. Gli altri utenti, comprese le altre famiglie del pilota, non possono vederli. Gli amministratori verificano le segnalazioni e il catalogo pubblico, non i tuoi piani o i tuoi bambini.',
     p3: 'I dati sono salvati presso Supabase (regione UE). Il sito è ospitato da Cloudflare. Non usiamo pubblicità né tracciamento.',
     p4: 'Puoi eliminare l’account in qualsiasi momento dal profilo. Così vengono rimossi tutti i tuoi dati privati.',
+    p5: 'Se accedi con Google, Google ci comunica il tuo indirizzo e-mail e il tuo nome. Non riceviamo mai la tua password Google e nel tuo account Google non viene pubblicato nulla.',
     contact: 'Domande: {email}',
   },
   footer: { privacy: 'Privacy', contact: 'Contatto', pilot: 'Versione pilota' },

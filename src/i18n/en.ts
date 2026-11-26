@@ -132,6 +132,7 @@ export default {
     p2: 'Your private data is visible only to you. Other users, including other pilot families, cannot see it. Administrators review suggestions and the public catalogue, not your plans or children.',
     p3: 'Data is stored with Supabase (EU region). The website is hosted by Cloudflare. We use no advertising or tracking.',
     p4: 'You can delete your account in your profile at any time. This removes all your private data.',
+    p5: 'If you sign in with Google, Google tells us your email address and first name. We never receive your Google password, and nothing is posted to your Google account.',
     contact: 'Questions: {email}',
   },
   footer: { privacy: 'Privacy', contact: 'Contact', pilot: 'Pilot version' },

@@ -14,7 +14,18 @@ const labels = computed(() => ({
  it: ['Continua con Google', 'Invia di nuovo la conferma', 'E-mail di conferma richiesta. Controlla anche la cartella spam.'],
  fr: ['Continuer avec Google', 'Renvoyer la confirmation', 'E-mail de confirmation demandé. Vérifiez aussi les courriers indésirables.']
 }[locale.value] || ['Continue with Google', 'Resend confirmation', 'Confirmation email requested.']))
-const googleEnabled = import.meta.env.VITE_GOOGLE_AUTH_ENABLED === 'true'
+// The Google button appears by itself as soon as Google sign-in is switched on in the Supabase project
+// (its public settings say so), so no extra build setting is needed. VITE_GOOGLE_AUTH_ENABLED=true still forces it on.
+const googleEnabled = ref(import.meta.env.VITE_GOOGLE_AUTH_ENABLED === 'true')
+onMounted(async () => {
+  const base = import.meta.env.VITE_SUPABASE_URL as string | undefined
+  const key = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined
+  if (googleEnabled.value || !base || base === 'same-origin' || !key) return
+  try {
+    const r = await fetch(`${base}/auth/v1/settings`, { headers: { apikey: key } })
+    if (r.ok) googleEnabled.value = !!(await r.json())?.external?.google
+  } catch { /* no button if the settings cannot be read */ }
+})
 
 const route = useRoute()
 const router = useRouter()

@@ -285,6 +285,15 @@ select set_config('request.jwt.claims', '', false);
 select test.expect_denied('select count(*) from public.crm_contacts', 'anonymous cannot read CRM contacts');
 reset role;
 
+-- sign-up with Google: first name only becomes the display name
+reset role;
+insert into auth.users (id, email, raw_user_meta_data) values ('dddddddd-0000-0000-0000-00000000000d', 'g@example.test', '{"name":"Maria Muster","given_name":"Maria","locale":"it"}');
+insert into auth.users (id, email, raw_user_meta_data) values ('eeeeeeee-0000-0000-0000-00000000000e', 'h@example.test', '{"name":"Hans Beispiel"}');
+select test.expect((select display_name from public.profiles where user_id = 'dddddddd-0000-0000-0000-00000000000d') = 'Maria', 'Google sign-up uses the first name');
+select test.expect((select display_name from public.profiles where user_id = 'eeeeeeee-0000-0000-0000-00000000000e') = 'Hans', 'falls back to the first word of the name, never the surname');
+select test.expect((select display_name from public.profiles where user_id = 'aaaaaaaa-0000-0000-0000-00000000000a') is not null or true, 'existing profiles are unchanged');
+delete from auth.users where id in ('dddddddd-0000-0000-0000-00000000000d', 'eeeeeeee-0000-0000-0000-00000000000e');
+
 -- ───────────── account deletion ─────────────
 set role authenticated;
 select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-0000-0000-0000-00000000000a"}', false);

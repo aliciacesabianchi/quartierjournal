@@ -134,6 +134,7 @@ const fr: typeof en = {
     p2: 'Vos données privées ne sont visibles que par vous. Les autres utilisateurs, y compris les autres familles du pilote, ne peuvent pas les voir. Les administrateurs vérifient les propositions et le catalogue public, pas vos plans ni vos enfants.',
     p3: 'Les données sont stockées chez Supabase (région UE). Le site est hébergé par Cloudflare. Nous n’utilisons ni publicité ni suivi.',
     p4: 'Vous pouvez supprimer votre compte à tout moment dans votre profil. Toutes vos données privées sont alors effacées.',
+    p5: 'Si vous vous connectez avec Google, Google nous transmet votre adresse e-mail et votre prénom. Nous ne recevons jamais votre mot de passe Google et rien n’est publié sur votre compte Google.',
     contact: 'Questions : {email}',
   },
   footer: { privacy: 'Confidentialité', contact: 'Contact', pilot: 'Version pilote' },

@@ -134,6 +134,7 @@ const de: typeof en = {
     p2: 'Deine privaten Daten siehst nur du. Andere Nutzer:innen, auch andere Pilotfamilien, können sie nicht sehen. Administrator:innen prüfen Tipps und das öffentliche Angebot, nicht deine Pläne oder Kinder.',
     p3: 'Die Daten liegen bei Supabase (EU-Region). Die Website wird von Cloudflare ausgeliefert. Wir verwenden keine Werbung und kein Tracking.',
     p4: 'Du kannst dein Konto jederzeit im Profil löschen. Damit werden alle deine privaten Daten entfernt.',
+    p5: 'Wenn du dich mit Google anmeldest, teilt uns Google deine E-Mail-Adresse und deinen Vornamen mit. Dein Google-Passwort erhalten wir nie, und in deinem Google-Konto wird nichts veröffentlicht.',
     contact: 'Fragen: {email}',
   },
   footer: { privacy: 'Datenschutz', contact: 'Kontakt', pilot: 'Pilotversion' },
