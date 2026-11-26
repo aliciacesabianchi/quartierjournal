@@ -79,7 +79,7 @@ const de: typeof en = {
     toSignup: 'Noch kein Konto? Registrieren', toLogin: 'Schon ein Konto? Anmelden',
     forgot: 'Passwort vergessen?', resetTitle: 'Passwort zurücksetzen', resetSend: 'Link senden',
     resetSent: 'Falls ein Konto für {email} besteht, ist ein Link unterwegs. Bitte auch im Spam-Ordner nachsehen.',
-    checkEmail: 'Fast geschafft: Wir haben einen Bestätigungslink an {email} geschickt. Öffne ihn, um dein Konto zu aktivieren (auch im Spam-Ordner nachsehen).',
+    checkEmail: 'Fast geschafft: Wir haben einen Bestätigungslink an {email} geschickt. Öffne ihn, um dein Konto zu aktivieren (sieh auch im Junk- oder Spam-Ordner nach; bei Hotmail und Outlook kann es ein paar Minuten dauern). Nichts da? Drücke unten «Bestätigung erneut senden» oder schreib uns.',
     maybeExists: 'Diese E-Mail-Adresse ist möglicherweise schon registriert. Versuche dich anzumelden oder setze dein Passwort zurück.',
     linkInvalid: 'Dieser Link ist abgelaufen oder wurde schon verwendet. Fordere auf der Anmeldeseite einen neuen an.',
     confirmedLogin: 'Du kannst dich jetzt anmelden. Falls du gerade deine E-Mail bestätigt hast, ist deine Adresse verifiziert.',

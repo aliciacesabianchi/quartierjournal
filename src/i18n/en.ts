@@ -77,7 +77,7 @@ export default {
     toSignup: 'No account yet? Sign up', toLogin: 'Already have an account? Log in',
     forgot: 'Forgot password?', resetTitle: 'Reset password', resetSend: 'Send reset link',
     resetSent: 'If an account exists for {email}, a reset link is on its way. Please also check your spam folder.',
-    checkEmail: 'Almost done: we have sent a confirmation link to {email}. Open it to activate your account (check your spam folder too).',
+    checkEmail: 'Almost done: we have sent a confirmation link to {email}. Open it to activate your account (check your Junk or spam folder too; with Hotmail and Outlook it can take a few minutes). Nothing there? Press “Resend confirmation” below or write to us.',
     maybeExists: 'This email address may already be registered. Try logging in, or reset your password.',
     linkInvalid: 'This link has expired or was already used. Request a new one from the login page.',
     confirmedLogin: 'You can log in now. If you just confirmed your email, your address is verified.',

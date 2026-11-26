@@ -79,7 +79,7 @@ const fr: typeof en = {
     toSignup: 'Pas encore de compte ? S’inscrire', toLogin: 'Déjà un compte ? Se connecter',
     forgot: 'Mot de passe oublié ?', resetTitle: 'Réinitialiser le mot de passe', resetSend: 'Envoyer le lien',
     resetSent: 'Si un compte existe pour {email}, un lien est en route. Pensez à vérifier vos spams.',
-    checkEmail: 'Presque fini : nous avons envoyé un lien de confirmation à {email}. Ouvrez-le pour activer votre compte (vérifiez aussi vos spams).',
+    checkEmail: 'Presque fini : nous avons envoyé un lien de confirmation à {email}. Ouvrez-le pour activer votre compte (vérifiez aussi les courriers indésirables ou spams ; avec Hotmail et Outlook cela peut prendre quelques minutes). Rien ? Appuyez sur « Renvoyer la confirmation » ci-dessous ou écrivez-nous.',
     maybeExists: 'Cette adresse e-mail est peut-être déjà enregistrée. Essayez de vous connecter ou réinitialisez votre mot de passe.',
     linkInvalid: 'Ce lien a expiré ou a déjà été utilisé. Demandez-en un nouveau depuis la page de connexion.',
     confirmedLogin: 'Vous pouvez maintenant vous connecter. Si vous venez de confirmer votre e-mail, votre adresse est vérifiée.',

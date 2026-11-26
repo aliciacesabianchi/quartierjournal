@@ -79,7 +79,7 @@ const it: typeof en = {
     toSignup: 'Non hai un account? Registrati', toLogin: 'Hai già un account? Accedi',
     forgot: 'Password dimenticata?', resetTitle: 'Reimposta la password', resetSend: 'Invia il link',
     resetSent: 'Se esiste un account per {email}, ti abbiamo inviato un link. Controlla anche la cartella spam.',
-    checkEmail: 'Quasi fatto: abbiamo inviato un link di conferma a {email}. Aprilo per attivare l’account (controlla anche lo spam).',
+    checkEmail: 'Quasi fatto: abbiamo inviato un link di conferma a {email}. Aprilo per attivare l’account (controlla anche la cartella Posta indesiderata o spam; con Hotmail e Outlook può volerci qualche minuto). Niente? Premi «Invia di nuovo la conferma» qui sotto o scrivici.',
     maybeExists: 'Questo indirizzo e-mail potrebbe essere già registrato. Prova ad accedere o reimposta la password.',
     linkInvalid: 'Questo link è scaduto o è già stato usato. Richiedine uno nuovo dalla pagina di accesso.',
     confirmedLogin: 'Ora puoi accedere. Se hai appena confermato la tua e-mail, il tuo indirizzo è verificato.',
